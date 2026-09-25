@@ -19,6 +19,8 @@ import aiohttp
 import edge_tts
 import edge_tts.communicate as _edge_comm
 import imageio_ffmpeg
+import numpy as np
+from scipy.io import wavfile
 
 import grabacion
 from episodio import BUILD, EP, NOMBRE, RAIZ, argumentos
@@ -74,6 +76,63 @@ def separar(texto):
     return MARCA.sub(lambda m: m.group(2), texto), MARCA.sub(lambda m: m.group(1), texto), pares
 
 
+# Silencio dentro de un bloque: "¿Qué animal...? [3s] ¡El koala!" deja 3 segundos entre la
+# pregunta y la respuesta (el tiempo para pensar de los quiz). Cada parte se sintetiza, o se
+# busca en la grabación, por separado; después se vuelven a juntar en un solo bloque.
+SILENCIO = re.compile(r"\s*\[(\d+(?:[.,]\d+)?)\s*s\]\s*")
+
+
+def partes(bloques):
+    out = []
+    for i, b in enumerate(bloques):
+        trozos = SILENCIO.split(b["texto"])
+        for k in range(0, len(trozos), 2):
+            silencio = float(trozos[k + 1].replace(",", ".")) if k + 1 < len(trozos) else 0.0
+            etiqueta = b["id"] if len(trozos) == 1 else f"{b['id']}.{k // 2 + 1}"
+            out.append({**b, "texto": trozos[k].strip(), "_bloque": i, "_silencio": silencio, "_etiqueta": etiqueta})
+    return out
+
+
+def silencios(bloques):
+    return sum(sum(float(x.replace(",", ".")) for x in SILENCIO.findall(b["texto"])) for b in bloques)
+
+
+def unir(hechas, bloques):
+    """Junta las partes de cada bloque: un solo audio y las palabras corridas por el silencio."""
+    out = []
+    for i, b in enumerate(bloques):
+        ps = [p for p in hechas if p["_bloque"] == i]
+        if len(ps) == 1:
+            out.append({k: v for k, v in ps[0].items() if not k.startswith("_")})
+            continue
+        t, palabras, tramos, pistas = 0.0, [], [], []
+        for p in ps:
+            palabras += [{**w, "t": round(w["t"] + t, 3)} for w in p["palabras"]]
+            tramos.append({"ini": round(t, 3), "fin": round(t + p["habla"], 3)})
+            pistas.append((t, p["audio"]))
+            t += p["habla"] + p["_silencio"]
+        ruta = os.path.join(BUILD, "voz", f"bloque_{i:02d}.wav")
+        dur = juntar_audios(pistas, ruta)
+        out.append({**b, "texto": " ".join(p["texto"] for p in ps),
+                    "texto_dicho": " ".join(p["texto_dicho"] for p in ps), "audio": ruta,
+                    "palabras": palabras, "habla": tramos[-1]["fin"], "archivo_dur": dur, "partes": tramos})
+    return out
+
+
+def juntar_audios(pistas, destino, sr=44100):
+    """Mezcla varios audios, cada uno en su segundo, en un wav."""
+    sonidos = []
+    for t, ruta in pistas:
+        raw = subprocess.run([FFMPEG, "-v", "error", "-i", ruta, "-f", "f32le", "-ac", "1", "-ar", str(sr), "-"],
+                             capture_output=True, check=True).stdout
+        sonidos.append((int(t * sr), np.frombuffer(raw, dtype=np.float32)))
+    y = np.zeros(max(i + len(x) for i, x in sonidos), dtype=np.float32)
+    for i, x in sonidos:
+        y[i:i + len(x)] += x
+    wavfile.write(destino, sr, y)
+    return len(y) / sr
+
+
 def a_mostrar(palabras, pares):
     """Cambia cada palabra que devolvió la voz por su versión para subtítulos."""
     j = 0
@@ -122,7 +181,7 @@ def duracion_audio(ruta):
 async def generar(rate):
     os.makedirs(os.path.join(BUILD, "voz"), exist_ok=True)
     bloques = []
-    for i, b in enumerate(EP.BLOQUES):
+    for i, b in enumerate(partes(EP.BLOQUES)):
         ruta = os.path.join(BUILD, "voz", f"seg_{i:02d}.mp3")
         decir, mostrar, pares = separar(b["texto"])
         palabras = a_mostrar(await sintetizar(decir, ruta, rate), pares)
@@ -130,7 +189,7 @@ async def generar(rate):
         fin_habla = palabras[-1]["t"] + palabras[-1]["d"]
         bloques.append({**b, "texto": mostrar, "texto_dicho": decir, "audio": ruta, "palabras": palabras,
                         "habla": fin_habla, "archivo_dur": duracion_audio(ruta)})
-    return bloques
+    return unir(bloques, EP.BLOQUES)
 
 
 def grabacion_propia():
@@ -143,9 +202,12 @@ def grabacion_propia():
 
 
 def con_voz_humana(ruta):
-    fijo = (INICIO + PAUSA * (len(EP.BLOQUES) - 1) + sum(b.get("pausa_despues", 0) for b in EP.BLOQUES))
+    fijo = (INICIO + PAUSA * (len(EP.BLOQUES) - 1) + sum(b.get("pausa_despues", 0) for b in EP.BLOQUES)
+            + silencios(EP.BLOQUES))
     presupuesto = EP.DURACION - FINAL_MIN - fijo
-    bloques, informe = grabacion.procesar(ruta, EP.BLOQUES, os.path.join(BUILD, "voz"), presupuesto, separar)
+    hechas, informe = grabacion.procesar(ruta, partes(EP.BLOQUES), os.path.join(BUILD, "voz"), presupuesto,
+                                         separar)
+    bloques = unir(hechas, EP.BLOQUES)
     print("\n".join(informe))
     with open(os.path.join(BUILD, "grabacion_informe.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(informe) + "\n")

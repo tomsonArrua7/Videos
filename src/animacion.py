@@ -23,7 +23,7 @@ from dibujo import (FPS, TINTA, H, W, Capa, F, _pildora, a_imagen, clamp, compon
                     e_in_out, e_out, gradiente, lerp, pop, prog, rayos_sol, resplandor, spr_brillo,
                     texto, texto_ajustado, titulo, viñeta)
 from episodio import BUILD, EP, SALIDA_PORTADA, SALIDA_VIDEO, argumentos
-from tiempos import Linea, _norm, eventos
+from tiempos import GANCHO_COMUN, Linea, _norm, eventos
 
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 L = Linea()
@@ -159,8 +159,9 @@ def escena_cierre(t):
     t0 = ESC["cierre"]["escena_ini"]
     rayos_sol(fr, 540, 800, -t * 0.3, n=18, color=(255, 255, 255, 20))
     confeti(fr, t, t0, alpha=0.8)
-    titulo(fr, t, "¿CUÁL TE", t0 + 0.1, y=320, tam=130)
-    titulo(fr, t, "SORPRENDIÓ MÁS?", t0 + 0.22, y=460, tam=130, color=(255, 230, 90))
+    linea1, linea2 = getattr(EP, "CIERRE_TITULO", ("¿CUÁL TE", "SORPRENDIÓ MÁS?"))
+    titulo(fr, t, linea1, t0 + 0.1, y=320, tam=130)
+    titulo(fr, t, linea2, t0 + 0.22, y=460, tam=130, color=(255, 230, 90))
     aros = [EP.ACENTO[i] for i in ORDEN[1:4]]
     for i, x in enumerate((200, 540, 880)):
         s = pop(t, t0 + 0.35 + 0.15 * i, 0.45)
@@ -319,7 +320,7 @@ def armar_frases():
         for i, g in enumerate(grupo):
             ini = g[0]["t"] - 0.05
             if i + 1 < len(grupo):
-                fin = grupo[i + 1][0]["t"] - 0.05
+                fin = min(grupo[i + 1][0]["t"] - 0.05, g[-1]["t"] + g[-1]["d"] + 0.8)
             else:
                 fin = min(g[-1]["t"] + g[-1]["d"] + 0.35, b["escena_fin"] - 0.02)
             frases.append({"ini": ini, "fin": fin, "palabras": g})
@@ -409,8 +410,8 @@ TR = 0.5
 
 def sacudida(t):
     dx = dy = 0.0
-    for t0, amp, dur in [(E["g_tres"], 10, 0.25), (E["g_boom"], 30, 0.55),
-                         (E["c_seguinos"] + 0.25, 6, 0.2)] + EP.sacudidas(E):
+    comunes = [(E["g_tres"], 10, 0.25), (E["g_boom"], 30, 0.55)] if GANCHO_COMUN else []
+    for t0, amp, dur in comunes + [(E["c_seguinos"] + 0.25, 6, 0.2)] + EP.sacudidas(E):
         if 0 <= t - t0 < dur:
             k = amp * (1 - (t - t0) / dur) ** 2
             dx += k * math.sin(t * 97 + 1.3)
@@ -479,8 +480,9 @@ def previa(tiempos):
 
 
 def portada():
-    """Imagen de portada (miniatura) sin subtítulos: el gancho con la cabeza explotando."""
-    escena_gancho(E["g_boom"] + 0.5).convert("RGB").save(SALIDA_PORTADA)
+    """Imagen de portada (miniatura) sin subtítulos: el gancho en su mejor momento."""
+    t = EP.momento_portada(E) if hasattr(EP, "momento_portada") else E["g_boom"] + 0.5
+    ESCENAS["gancho"](t).convert("RGB").save(SALIDA_PORTADA)
     print("portada lista:", SALIDA_PORTADA)
 
 

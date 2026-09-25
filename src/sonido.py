@@ -16,7 +16,7 @@ from scipy.io import wavfile
 from scipy.signal import butter, fftconvolve, lfilter, sosfilt, sosfiltfilt
 
 from episodio import BUILD, EP
-from tiempos import Linea, eventos
+from tiempos import GANCHO_COMUN, Linea, eventos
 
 SR = 44100
 BPM = 120
@@ -257,6 +257,24 @@ def tic():
     return np.sin(2 * np.pi * 2400 * t) * np.exp(-t * 200)
 
 
+def tictac(agudo=True):
+    """Tic de reloj de cuenta regresiva (madera + clic metálico)."""
+    t = tt(0.08)
+    f = 1900 if agudo else 1500
+    madera = np.sin(2 * np.pi * f * t) * np.exp(-t * 90)
+    clac = filtro(rng.standard_normal(len(t)), "bandpass", [2500, 7000]) * np.exp(-t * 160)
+    return 0.7 * madera + 0.5 * clac
+
+
+def acierto():
+    """Respuesta correcta: dos notas que suben, con brillo."""
+    y = np.zeros(int(1.3 * SR))
+    pegar(y, glock(hz(84), 1.0), 0.0, 0.8)
+    pegar(y, glock(hz(91), 1.2), 0.11, 1.0)
+    pegar(y, glock(hz(96), 1.1), 0.11, 0.45)
+    return y
+
+
 def ding():
     return glock(hz(88), 1.4) + 0.5 * glock(hz(95), 1.4)
 
@@ -466,12 +484,13 @@ def efectos(dur, L, E):
     for b in L.bloques[1:]:
         pegar(fx, whoosh(), b["escena_ini"] - 0.22, 0.30)
         pegar(fx, pop(1100, 350), E[f"{b['id']}_badge"], 0.35)
-    # gancho
-    pegar(fx, golpe(), E["g_tres"], 0.55)
-    pegar(fx, pop(), E["g_curio"], 0.35)
-    pegar(fx, pop(700, 200), E["g_cara"], 0.35)
-    pegar(fx, whoosh(0.5, 200, 6000), E["g_boom"] - 0.45, 0.22)
-    pegar(fx, boom(), E["g_boom"], 0.65)
+    # gancho (si el episodio trae el suyo, pone sus efectos en EP.efectos)
+    if GANCHO_COMUN:
+        pegar(fx, golpe(), E["g_tres"], 0.55)
+        pegar(fx, pop(), E["g_curio"], 0.35)
+        pegar(fx, pop(700, 200), E["g_cara"], 0.35)
+        pegar(fx, whoosh(0.5, 200, 6000), E["g_boom"] - 0.45, 0.22)
+        pegar(fx, boom(), E["g_boom"], 0.65)
     # cierre
     for i in range(3):
         pegar(fx, pop(700 + 150 * i, 280), E["cierre_ini"] + 0.35 + 0.15 * i, 0.30)

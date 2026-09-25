@@ -8,7 +8,7 @@ Pasos del retoque:
     el nivel real del audio (Whisper adelanta los comienzos y corta las "s" finales).
  4. Ubica cada bloque del guion en la grabación. Si repetiste una frase porque te
     trabaste, se queda con la última toma completa.
- 5. Recorta cada bloque, baja las respiraciones entre palabras, empareja el volumen
+ 5. Recorta cada bloque, acorta las pausas largas, baja las respiraciones, empareja el volumen
     entre tomas y, solo si no entra en el tiempo, acelera un poquito sin cambiar el tono.
 
 Los subtítulos usan el texto del guion (bien escrito) con los tiempos de tu voz.
@@ -30,6 +30,7 @@ from tiempos import _norm
 SR = 44100
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 TEMPO_MAX = 1.15        # más rápido que esto ya se nota
+PAUSA_MAX = 0.40        # las pausas más largas dentro de una frase se acortan a esto
 
 
 def buscar(raiz, patron):
@@ -163,25 +164,32 @@ def tiempos_de_palabras(texto, ventana):
 
 # ----------------------------------------------- ajuste fino con la señal
 def _envolvente(x):
-    """Nivel en dB cada 10 ms."""
+    """Nivel en dB cada 10 ms, en la banda de la voz (sin retumbes graves que confundan un silencio con habla)."""
+    x = sosfiltfilt(butter(4, [250, 8000], btype="bandpass", fs=SR, output="sos"), x)
     h = int(0.01 * SR)
     n = len(x) // h
     return 20 * np.log10(np.sqrt(np.mean(x[:n * h].reshape(n, h) ** 2, axis=1)) + 1e-9)
 
 
-def _inicio_real(env, t0, t1, umbral):
-    """Whisper suele adelantar el comienzo de una palabra que sigue a un silencio: se corre al primer sonido."""
-    a, b = int(t0 * 100), min(int(t1 * 100), len(env))
-    if a >= b or env[a] > umbral:
-        return t0
-    for k in range(a, b):
-        if env[k] > umbral:
-            return k / 100
-    return t0
+def _nucleo(env, a, z, umbral, hueco=0.2):
+    """Tramo con sonido de una palabra. Whisper suele estirarla sobre el silencio de al lado (antes o
+    después): si adentro hay un hueco largo, la palabra es el tramo con más sonido."""
+    i0, i1 = int(a * 100), min(int(z * 100), len(env))
+    activos = [k for k in range(i0, i1) if env[k] > umbral]
+    if not activos:
+        return a, z
+    grupos = [[activos[0], activos[0]]]
+    for k in activos[1:]:
+        if k - grupos[-1][1] > hueco * 100:
+            grupos.append([k, k])
+        else:
+            grupos[-1][1] = k
+    g = max(grupos, key=lambda g: g[1] - g[0])
+    return g[0] / 100, (g[1] + 1) / 100
 
 
 def _fin_real(env, t1, limite, umbral):
-    """...y suele cortar antes el final (la "s" de "seis"): se extiende mientras siga sonando."""
+    """Whisper también suele cortar antes el final (la "s" de "seis"): se extiende mientras siga sonando."""
     k, tope = int(t1 * 100), min(int(limite * 100), len(env))
     ultimo, hueco = k - 1, 0
     while k < tope and hueco <= 4:
@@ -195,7 +203,7 @@ def _fin_real(env, t1, limite, umbral):
 
 def ajustar_a_la_voz(env, pals, limite, umbral_voz, umbral_cola):
     """Corrige los tiempos de Whisper con el nivel real de la grabación."""
-    pals = [(w, _inicio_real(env, a, z, umbral_voz), z) for w, a, z in pals]
+    pals = [(w, *_nucleo(env, a, z, umbral_voz)) for w, a, z in pals]
     out = []
     for i, (w, a, z) in enumerate(pals):
         sig = pals[i + 1][1] - 0.03 if i + 1 < len(pals) else limite
@@ -229,6 +237,32 @@ def _bajar_respiraciones(seg, palabras, db=-12.0):
     return seg * g
 
 
+def _acortar_pausas(seg, pals, maximo=PAUSA_MAX):
+    """Saca el aire de más de las pausas largas dentro de un bloque, como un corte de edición."""
+    cortes = []
+    for (_, _, fin), (_, ini, _) in zip(pals, pals[1:]):
+        if ini - fin > maximo:
+            medio, sobra = (fin + ini) / 2, ini - fin - maximo
+            cortes.append((medio - sobra / 2, medio + sobra / 2))
+    if not cortes:
+        return seg, pals, 0.0
+    fundido = int(0.01 * SR)
+    trozos, pos = [], 0
+    for a, b in cortes:
+        trozos.append(seg[pos:int(a * SR)])
+        pos = int(b * SR)
+    trozos.append(seg[pos:])
+    out = trozos[0]
+    for tr in trozos[1:]:
+        n = min(fundido, len(out), len(tr))
+        cruce = out[len(out) - n:] * np.linspace(1, 0, n) + tr[:n] * np.linspace(0, 1, n)
+        out = np.concatenate([out[:len(out) - n], cruce, tr[n:]])
+    quitado = [(b, b - a + fundido / SR) for a, b in cortes]
+    nuevas = [(w, a - sum(q for b, q in quitado if b <= a + 1e-9), z - sum(q for b, q in quitado if b <= a + 1e-9))
+              for w, a, z in pals]
+    return out, nuevas, sum(q for _, q in quitado)
+
+
 def _atempo(ruta, factor):
     tmp = ruta + ".tmp.wav"
     subprocess.run([FFMPEG, "-y", "-v", "error", "-i", ruta, "-filter:a", f"atempo={factor:.4f}", tmp], check=True)
@@ -254,19 +288,22 @@ def procesar(ruta, bloques, carpeta, presupuesto, separar):
     umbral_voz = max(ruido + 18, env.max() - 32)     # vocales y consonantes fuertes
     umbral_cola = ruido + 12                         # finales suaves ("s", "f")
 
-    salida, informe = [], []
+    salida, informe, acortado = [], [], 0.0
     for i, (b, texto, (r, s, e)) in enumerate(zip(bloques, textos, ubicados)):
         limite = len(x) / SR
         if e < len(oidas):
-            limite = _inicio_real(env, oidas[e]["t0"], oidas[e]["t1"], umbral_voz) - 0.03
+            limite = _nucleo(env, oidas[e]["t0"], oidas[e]["t1"], umbral_voz)[0] - 0.03
         pals = ajustar_a_la_voz(env, tiempos_de_palabras(texto, oidas[s:e]), limite, umbral_voz, umbral_cola)
         ini = max(pals[0][1] - 0.10, oidas[s - 1]["t1"] + 0.02 if s > 0 else 0)
         fin = min(pals[-1][2] + 0.10, limite)
         seg = _cortar(x, ini, fin)
         rel = [(w, a - ini, z - ini) for w, a, z in pals]
+        seg, rel, quitado = _acortar_pausas(seg, rel)
+        acortado += quitado
         seg = _bajar_respiraciones(seg, rel)
         salida.append({"b": b, "texto": texto, "seg": seg, "pals": rel})
-        informe.append(f"  {b['id']:<9} coincidencia {r:.0%}  ({ini:5.2f}s → {fin:5.2f}s de la grabación)")
+        informe.append(f"  {b.get('_etiqueta', b['id']):<11} coincidencia {r:.0%}  "
+                       f"({ini:5.2f}s → {fin:5.2f}s de la grabación)")
 
     # volumen parejo entre tomas
     rms = [np.sqrt(np.mean(o["seg"][np.abs(o["seg"]) > 0.02] ** 2)) for o in salida]
@@ -295,5 +332,6 @@ def procesar(ruta, bloques, carpeta, presupuesto, separar):
                f"Velocidad: {'sin cambios' if factor <= 1.001 else f'+{(factor - 1) * 100:.0f} % (sin cambiar el tono)'}"
                + (" — ¡AVISO: sigue sin entrar, conviene leer un poco más rápido!" if habla / factor > presupuesto + 0.05
                   else ""),
+               f"Pausas largas acortadas: {acortado:.1f} s en total",
                "Bloques ubicados:"] + informe
     return bloques_out, informe

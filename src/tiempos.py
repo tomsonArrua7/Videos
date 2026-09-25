@@ -11,6 +11,11 @@ import unicodedata
 from episodio import BUILD, EP
 
 
+# Un episodio puede traer su propio gancho (por ejemplo, el de los quiz) en EP.ESCENAS["gancho"].
+# Si no, se usa el común: la carita que explota con "tres", "curiosidades" y "cabeza".
+GANCHO_COMUN = "gancho" not in getattr(EP, "ESCENAS", {})
+
+
 def _norm(s):
     s = unicodedata.normalize("NFD", s.lower())
     return "".join(c for c in s if c.isalnum() and unicodedata.category(c) != "Mn")
@@ -40,6 +45,12 @@ class Linea:
         b, w = self._buscar(bloque, palabra, n)
         return b["inicio"] + w["t"] + w["d"]
 
+    def parte(self, bloque, k):
+        """(inicio, fin) absolutos de la parte k de un bloque con silencios internos ("[3s]")."""
+        b = self.por_id[bloque]
+        p = b["partes"][k]
+        return b["inicio"] + p["ini"], b["inicio"] + p["fin"]
+
     def escena_en(self, t):
         for b in self.bloques:
             if b["escena_ini"] <= t < b["escena_fin"]:
@@ -63,10 +74,11 @@ def eventos(L):
         E[f"{b['id']}_ini"] = b["escena_ini"]
         E[f"{b['id']}_badge"] = b["escena_ini"] + 0.30
 
-    E["g_tres"] = L.palabra("gancho", "tres")
-    E["g_curio"] = L.palabra("gancho", "curiosidades")
-    E["g_cara"] = E["g_curio"] + 0.40
-    E["g_boom"] = L.palabra("gancho", "cabeza")
+    if GANCHO_COMUN:
+        E["g_tres"] = L.palabra("gancho", "tres")
+        E["g_curio"] = L.palabra("gancho", "curiosidades")
+        E["g_cara"] = E["g_curio"] + 0.40
+        E["g_boom"] = L.palabra("gancho", "cabeza")
 
     comentar, seguir = getattr(EP, "PALABRAS_CIERRE", ("comentarios", "seguinos"))
     ultima = L.por_id["cierre"]["palabras"][-1]["w"]

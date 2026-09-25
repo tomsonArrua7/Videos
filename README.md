@@ -1,6 +1,6 @@
 # Videos de curiosidades 🤯
 
-Serie de videos animados de **30 segundos**, verticales (1080×1920, 30 fps), listos para Shorts, Reels y TikTok.
+Serie de videos animados de **30 segundos** (el quiz, 38), verticales (1080×1920, 30 fps), listos para Shorts, Reels y TikTok.
 
 | Episodio | Curiosidades | Voz | Video | Guion |
 |---|---|---|---|---|
@@ -13,6 +13,7 @@ Serie de videos animados de **30 segundos**, verticales (1080×1920, 30 fps), li
 | 7 | 🎬 películas 2: Star Wars · Buscando a Nemo · Harry Potter | Tomás (hombre, Argentina) | [`ep07_peliculas_2.mp4`](output/ep07_peliculas_2.mp4) · [portada](output/ep07_portada.png) | [guion](guiones/ep07_peliculas_2.md) |
 | 8 | 🎬 películas 3: Psicosis · El Mago de Oz · Frozen | Tomás (hombre, Argentina) | [`ep08_peliculas_3.mp4`](output/ep08_peliculas_3.mp4) · [portada](output/ep08_portada.png) | [guion](guiones/ep08_peliculas_3.md) |
 | 9 | 🧠 tu cuerpo: más alto a la mañana · huesos · brillás en la oscuridad | **Voz humana** (grabada con el celular) | [`ep09_cuerpo_humano.mp4`](output/ep09_cuerpo_humano.mp4) · [portada](output/ep09_portada.png) | [guion y guía para grabar](guiones/ep09_cuerpo_humano.md) |
+| 10 | ❓ quiz interactivo: huellas del koala · luz del Sol · peso de una nube | **Voz humana** (grabada con el celular) | [`ep10_quiz.mp4`](output/ep10_quiz.mp4) · [portada](output/ep10_portada.png) | [guion](guiones/ep10_quiz.md) |
 
 Cada guion trae la tabla de escenas, los datos verificados y un texto listo para publicar.
 En los episodios de películas, series y dibujos se usan objetos y guiños genéricos: nunca se
@@ -81,6 +82,22 @@ python verificar_voz.py ep05                                   # transcribe y ma
 python verificar_voz.py ep05 --probar "La serie Frends." "La serie Fréns."   # compara variantes
 ```
 
+## Episodios quiz
+
+Un episodio puede ser de preguntas (ver `src/episodios/ep10.py`). Cada bloque de pregunta lleva:
+
+```python
+{"id": "p1",
+ "texto": "Uno: ¿qué animal...? [3s] ¡El koala! Dato.",   # [3s] = silencio para pensar
+ "pregunta": "¿Qué animal...?",                            # tarjeta de arriba
+ "opciones": ["PERRO", "DELFÍN", "KOALA"], "correcta": 2}
+```
+
+`src/quiz.py` pone la tarjeta, las opciones A/B/C, el reloj 3-2-1 con tic-tac y la revelación de la correcta.
+El episodio solo dibuja lo del medio de cada pregunta. Un episodio también puede traer su propio gancho
+(`ESCENAS["gancho"]`, como el cronómetro del quiz), el título del cierre (`CIERRE_TITULO`) y el cuadro de
+portada (`momento_portada`). La marca `[Ns]` funciona igual con la voz sintética y con una grabación.
+
 ## Grabar con tu voz
 
 Cualquier episodio puede usar una voz humana en lugar de la sintética:
@@ -96,7 +113,8 @@ El retoque (`src/grabacion.py`, necesita `pip install -r requirements-verificaci
 - **Sincronía:** Whisper transcribe con tiempos por palabra y ubica cada bloque (también las repeticiones).
   Como Whisper adelanta los comienzos y corta antes los finales (la "s" de "seis"), cada palabra se
   ajusta con el nivel real de la grabación. Las animaciones y los subtítulos siguen a tus palabras.
-- **Edición:** corta los bloques, baja las respiraciones y empareja el volumen.
+- **Edición:** corta los bloques, acorta las pausas largas dentro de las frases, baja las respiraciones
+  y empareja el volumen.
 - **Tiempo:** si no entra en 30 s, acelera hasta un 15 % sin cambiar el tono. Si aun así no entra,
   el video se estira unas décimas.
 - **Sonido:** después pasa por la misma cadena de locución y mezcla que la voz sintética.
