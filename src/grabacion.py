@@ -4,7 +4,8 @@ Pasos del retoque:
  1. Lee cualquier formato (m4a de celular, mp3, ogg de WhatsApp, wav...).
  2. Limpieza: saca la continua y los graves que retumban, y baja el ruido de fondo
     con una compuerta espectral (aprende el "perfil" del ruido de los silencios).
- 3. Whisper detecta cada palabra con su tiempo exacto.
+ 3. Whisper detecta cada palabra con su tiempo, y cada comienzo y final se corrige con
+    el nivel real del audio (Whisper adelanta los comienzos y corta las "s" finales).
  4. Ubica cada bloque del guion en la grabación. Si repetiste una frase porque te
     trabaste, se queda con la última toma completa.
  5. Recorta cada bloque, baja las respiraciones entre palabras, empareja el volumen
@@ -51,15 +52,21 @@ def guardar(ruta, x):
 
 
 # ------------------------------------------------------------------ limpieza
-def quitar_ruido(x, fuerza=1.6, piso_db=-20.0):
-    """Compuerta espectral: resta el perfil de ruido medido en los tramos más silenciosos."""
+def quitar_ruido(x, fuerza=2.0, piso_db=-18.0):
+    """Compuerta espectral: resta la potencia del ruido medido en los tramos más silenciosos.
+
+    Se resta en potencia (no en amplitud) para que las consonantes suaves que apenas superan
+    el ruido ("v", "l", "tr") no se pierdan: con una grabación real, restar en amplitud
+    empeoraba lo que entendía Whisper y así mejora respecto del original.
+    """
     f, t, Z = stft(x, SR, nperseg=2048, noverlap=1536)
     mag = np.abs(Z)
     energia = mag.sum(axis=0)
     silencios = energia <= np.percentile(energia, 15)
     ruido = np.median(mag[:, silencios], axis=1, keepdims=True) if silencios.any() else \
         np.percentile(mag, 10, axis=1, keepdims=True)
-    ganancia = np.clip(1 - fuerza * ruido / (mag + 1e-12), 10 ** (piso_db / 20), 1.0)
+    piso = 10 ** (piso_db / 20)
+    ganancia = np.sqrt(np.clip(1 - fuerza * (ruido / (mag + 1e-12)) ** 2, piso ** 2, 1.0))
     # suavizado en tiempo y frecuencia para que no aparezca el "ruido musical"
     nucleo = np.ones((3, 5)) / 15
     ganancia = convolve2d(ganancia, nucleo, mode="same", boundary="symm")
@@ -154,6 +161,49 @@ def tiempos_de_palabras(texto, ventana):
     return [(tok[i][0], t0s[i], t1s[i]) for i in range(len(tok))]
 
 
+# ----------------------------------------------- ajuste fino con la señal
+def _envolvente(x):
+    """Nivel en dB cada 10 ms."""
+    h = int(0.01 * SR)
+    n = len(x) // h
+    return 20 * np.log10(np.sqrt(np.mean(x[:n * h].reshape(n, h) ** 2, axis=1)) + 1e-9)
+
+
+def _inicio_real(env, t0, t1, umbral):
+    """Whisper suele adelantar el comienzo de una palabra que sigue a un silencio: se corre al primer sonido."""
+    a, b = int(t0 * 100), min(int(t1 * 100), len(env))
+    if a >= b or env[a] > umbral:
+        return t0
+    for k in range(a, b):
+        if env[k] > umbral:
+            return k / 100
+    return t0
+
+
+def _fin_real(env, t1, limite, umbral):
+    """...y suele cortar antes el final (la "s" de "seis"): se extiende mientras siga sonando."""
+    k, tope = int(t1 * 100), min(int(limite * 100), len(env))
+    ultimo, hueco = k - 1, 0
+    while k < tope and hueco <= 4:
+        if env[k] > umbral:
+            ultimo, hueco = k, 0
+        else:
+            hueco += 1
+        k += 1
+    return max(t1, (ultimo + 1) / 100)
+
+
+def ajustar_a_la_voz(env, pals, limite, umbral_voz, umbral_cola):
+    """Corrige los tiempos de Whisper con el nivel real de la grabación."""
+    pals = [(w, _inicio_real(env, a, z, umbral_voz), z) for w, a, z in pals]
+    out = []
+    for i, (w, a, z) in enumerate(pals):
+        sig = pals[i + 1][1] - 0.03 if i + 1 < len(pals) else limite
+        z = min(_fin_real(env, z, min(sig, z + 0.6), umbral_cola), max(sig, z))
+        out.append((w, a, max(z, a + 0.05)))
+    return out
+
+
 # ------------------------------------------------------------ armado
 def _cortar(x, a, b):
     a, b = max(0, int(a * SR)), min(len(x), int(b * SR))
@@ -199,11 +249,19 @@ def procesar(ruta, bloques, carpeta, presupuesto, separar):
     oidas = palabras_oidas(limpio, " ".join(textos))
     ubicados = ubicar(oidas, textos)
 
+    env = _envolvente(x)
+    ruido = np.percentile(env, 10)
+    umbral_voz = max(ruido + 18, env.max() - 32)     # vocales y consonantes fuertes
+    umbral_cola = ruido + 12                         # finales suaves ("s", "f")
+
     salida, informe = [], []
     for i, (b, texto, (r, s, e)) in enumerate(zip(bloques, textos, ubicados)):
-        pals = tiempos_de_palabras(texto, oidas[s:e])
-        ini = max(pals[0][1] - 0.12, oidas[s - 1]["t1"] + 0.02 if s > 0 else 0)
-        fin = min(pals[-1][2] + 0.18, oidas[e]["t0"] - 0.02 if e < len(oidas) else len(x) / SR)
+        limite = len(x) / SR
+        if e < len(oidas):
+            limite = _inicio_real(env, oidas[e]["t0"], oidas[e]["t1"], umbral_voz) - 0.03
+        pals = ajustar_a_la_voz(env, tiempos_de_palabras(texto, oidas[s:e]), limite, umbral_voz, umbral_cola)
+        ini = max(pals[0][1] - 0.10, oidas[s - 1]["t1"] + 0.02 if s > 0 else 0)
+        fin = min(pals[-1][2] + 0.10, limite)
         seg = _cortar(x, ini, fin)
         rel = [(w, a - ini, z - ini) for w, a, z in pals]
         seg = _bajar_respiraciones(seg, rel)

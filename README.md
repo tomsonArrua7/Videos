@@ -12,7 +12,7 @@ Serie de videos animados de **30 segundos**, verticales (1080×1920, 30 fps), li
 | 6 | 🎨 dibujos animados: Los Simpson · Bob Esponja · Mickey Mouse | Tomás (hombre, Argentina) | [`ep06_dibujos_animados.mp4`](output/ep06_dibujos_animados.mp4) · [portada](output/ep06_portada.png) | [guion](guiones/ep06_dibujos_animados.md) |
 | 7 | 🎬 películas 2: Star Wars · Buscando a Nemo · Harry Potter | Tomás (hombre, Argentina) | [`ep07_peliculas_2.mp4`](output/ep07_peliculas_2.mp4) · [portada](output/ep07_portada.png) | [guion](guiones/ep07_peliculas_2.md) |
 | 8 | 🎬 películas 3: Psicosis · El Mago de Oz · Frozen | Tomás (hombre, Argentina) | [`ep08_peliculas_3.mp4`](output/ep08_peliculas_3.mp4) · [portada](output/ep08_portada.png) | [guion](guiones/ep08_peliculas_3.md) |
-| 9 | 🧠 tu cuerpo: más alto a la mañana · huesos · brillás en la oscuridad | **Tu voz** (por ahora, muestra con Tomás) | [`ep09_cuerpo_humano.mp4`](output/ep09_cuerpo_humano.mp4) · [portada](output/ep09_portada.png) | [guion y guía para grabar](guiones/ep09_cuerpo_humano.md) |
+| 9 | 🧠 tu cuerpo: más alto a la mañana · huesos · brillás en la oscuridad | **Voz humana** (grabada con el celular) | [`ep09_cuerpo_humano.mp4`](output/ep09_cuerpo_humano.mp4) · [portada](output/ep09_portada.png) | [guion y guía para grabar](guiones/ep09_cuerpo_humano.md) |
 
 Cada guion trae la tabla de escenas, los datos verificados y un texto listo para publicar.
 En los episodios de películas, series y dibujos se usan objetos y guiños genéricos: nunca se
@@ -93,8 +93,9 @@ Cualquier episodio puede usar una voz humana en lugar de la sintética:
 El retoque (`src/grabacion.py`, necesita `pip install -r requirements-verificacion.txt`) hace esto:
 
 - **Ruido:** saca el zumbido grave y el ruido de fondo con una compuerta espectral que aprende de los silencios.
-- **Sincronía:** Whisper transcribe con tiempos por palabra, ubica cada bloque (también las repeticiones)
-  y ancla las animaciones y los subtítulos a tus palabras.
+- **Sincronía:** Whisper transcribe con tiempos por palabra y ubica cada bloque (también las repeticiones).
+  Como Whisper adelanta los comienzos y corta antes los finales (la "s" de "seis"), cada palabra se
+  ajusta con el nivel real de la grabación. Las animaciones y los subtítulos siguen a tus palabras.
 - **Edición:** corta los bloques, baja las respiraciones y empareja el volumen.
 - **Tiempo:** si no entra en 30 s, acelera hasta un 15 % sin cambiar el tono. Si aun así no entra,
   el video se estira unas décimas.

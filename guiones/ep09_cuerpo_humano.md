@@ -1,7 +1,7 @@
 # Episodio 9: "Tres curiosidades de tu cuerpo que te van a volar la cabeza"
 
 **Formato:** video vertical 9:16 (1080×1920) · 30 segundos · Shorts / Reels / TikTok
-**Voz:** **tu voz**, grabada con el celular y retocada por `src/grabacion.py`. Hasta que llegue la grabación, el video usa `es-AR-TomasNeural` como muestra.
+**Voz:** voz humana, grabada con el celular (`grabaciones/ep09.m4a`) y retocada por `src/grabacion.py`. Sin la grabación, el video usa `es-AR-TomasNeural`.
 **Imágenes:** todo original (una silueta, una regla, huesos, un ojo); no hay personajes ni logos.
 
 | Tiempo | Escena | Voz en off | Qué se ve | Sonido |
@@ -48,13 +48,22 @@ Para usarla, `python hacer_video.py ep09` busca `grabaciones/ep09.*` y hace lo s
 
 1. **Limpieza:** saca el zumbido grave y el ruido de fondo (una "compuerta espectral" que aprende el ruido de los silencios).
 2. **Sincronía:** Whisper transcribe la grabación palabra por palabra y ubica cada bloque del guion, incluidas las repeticiones.
+   Después, el comienzo y el final de cada palabra se ajustan con el nivel real del audio: Whisper suele adelantar
+   los comienzos y cortar antes las "s" finales.
 3. **Edición:** corta cada bloque, baja las respiraciones entre palabras y empareja el volumen de los cinco bloques.
 4. **Tiempo:** si hace falta, acelera sin cambiar el tono (máximo 15 %). Los subtítulos karaoke y las animaciones siguen a tus palabras.
 5. **Sonido:** después pasa por la misma cadena que la voz sintética (EQ, compresor, de-esser, limitador), la música baja sola cuando hablás y todo sale a −14 LUFS.
 
 El informe queda en `build/ep09/grabacion_informe.txt`: ruido antes y después, velocidad y qué tan bien se reconoció cada bloque.
 
-Se probó con una grabación simulada de celular, con ruido, zumbido, eco y un bloque repetido. El ruido de fondo bajó de −48,6 a −66,1 dBFS, se ubicaron los cinco bloques al 100 % (tomando la repetición) y alcanzó con acelerar un 4 %.
+### Resultado con la grabación real
+
+- **Audio:** 29,9 s de celular (AAC mono), a −17,5 LUFS y sin saturar. El ruido era un retumbe grave (100–300 Hz); arriba de 1 kHz la grabación estaba muy limpia.
+- **Ruido de fondo:** de −44,8 a −54,5 dBFS. Se resta en potencia y no en amplitud: restar en amplitud bajaba más el ruido (−59 dBFS), pero se comía consonantes suaves y Whisper entendía peor que en el original (confianza media 0,89 contra 0,94). Así queda en 0,95.
+- **Bloques:** los cinco se ubicaron al 100 %. Las pausas se recortaron y no hizo falta acelerar: la lectura dura 25 s.
+- **Whisper:** entiende todo salvo "volar" en el gancho, que sale rápido y pegado ("van a volar" → "onar"). Pasa lo mismo con el audio original y con un modelo más grande, así que viene de la toma y no del retoque; en pantalla se lee "VOLAR LA CABEZA". "Se chica" y "que la noche" son elisiones naturales del habla y "seguidnos" es un sesgo de Whisper hacia el español de España.
+
+También se probó con una grabación simulada con ruido, zumbido, eco y un bloque repetido: se quedó con la repetición correcta.
 
 ## Datos verificados
 

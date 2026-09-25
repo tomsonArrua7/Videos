@@ -1,7 +1,7 @@
 """Episodio 9: curiosidades de tu cuerpo — el primero pensado para voz humana.
 
 Si existe grabaciones/ep09.<m4a|mp3|ogg|wav...>, voz.py usa esa grabación
-(limpia y sincronizada por grabacion.py). Si no, usa la voz de Tomás como muestra.
+(limpia y sincronizada por grabacion.py). Si no, usa la voz de Tomás.
 """
 import math
 
@@ -15,7 +15,7 @@ from dibujo import (H, W, Capa, a_imagen, cartel, chispas, componer, e_back, e_i
 SLUG = "cuerpo_humano"
 DURACION = 30.0
 GRABACION = "grabaciones/ep09"      # tu voz (cualquier extensión de audio)
-VOZ = "es-AR-TomasNeural"            # muestra mientras no esté la grabación
+VOZ = "es-AR-TomasNeural"            # solo si falta la grabación
 VOZ_TONO = "+2Hz"
 VOZ_VELOCIDAD_MIN = 0
 GANCHO_ETIQUETA = "DE TU CUERPO"
