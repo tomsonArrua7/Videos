@@ -1,11 +1,11 @@
-"""Foto de perfil de la cuenta de quiz "trivias.fast".
+"""Foto de perfil de la cuenta de quiz "Trivia veloz".
 
 Usa el mismo lenguaje que los quiz: el cronómetro con el "?" rosa del gancho, más líneas de
 velocidad y un rayo. Todo lo importante queda dentro del círculo central, porque las redes
 recortan la foto en redondo.
 
-Salida: output/marca/trivias_fast_perfil.png (solo ícono, se lee aun chiquita)
-        output/marca/trivias_fast_perfil_nombre.png (con "TRIVIAS.FAST", para verse más grande)
+Salida: output/marca/trivia_veloz_perfil.png (solo ícono, se lee aun chiquita)
+        output/marca/trivia_veloz_perfil_nombre.png (con "TRIVIA VELOZ", para verse más grande)
 Uso:    python perfil.py
 """
 import math
@@ -91,17 +91,17 @@ def con_nombre():
     lineas_velocidad(fr, 330, 460, 0.7)
     componer(fr, reloj(190), 560, 420, rot=-10)
     rayo(fr, 790, 230, 0.8)
-    componer(fr, texto("TRIVIAS", "titulo", 158, color=(255, 255, 255), borde=13, color_borde=TINTA, sombra=12),
-             C, 775, rot=-3)
-    componer(fr, texto(".FAST", "titulo", 132, color=(255, 214, 10), borde=12, color_borde=TINTA, sombra=10),
-             C + 20, 905, rot=-3)
+    componer(fr, texto("TRIVIA", "titulo", 162, color=(255, 255, 255), borde=13, color_borde=TINTA, sombra=12),
+             C, 770, rot=-3)
+    componer(fr, texto("VELOZ", "titulo", 148, color=(255, 214, 10), borde=12, color_borde=TINTA, sombra=10),
+             C + 10, 905, rot=-3)
     brillos(fr, [(230, 300, 28), (880, 560, 24)])
     return fr
 
 
 def main():
     os.makedirs(CARPETA, exist_ok=True)
-    for nombre, im in (("trivias_fast_perfil.png", solo_icono()), ("trivias_fast_perfil_nombre.png", con_nombre())):
+    for nombre, im in (("trivia_veloz_perfil.png", solo_icono()), ("trivia_veloz_perfil_nombre.png", con_nombre())):
         ruta = os.path.join(CARPETA, nombre)
         im.convert("RGB").save(ruta)
         print(ruta)
