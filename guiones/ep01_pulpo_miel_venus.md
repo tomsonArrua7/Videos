@@ -1,8 +1,8 @@
-# Guion: "3 curiosidades que te van a volar la cabeza"
+# Episodio 1: "3 curiosidades que te van a volar la cabeza"
 
 **Formato:** video vertical 9:16 (1080×1920) · 30 segundos · Shorts / Reels / TikTok
 **Público:** fans de curiosidades y datos raros
-**Voz:** `es-AR-TomasNeural` (voz neuronal de Microsoft Edge, acento rioplatense, +4 % de velocidad)
+**Voz:** `es-AR-TomasNeural` (hombre, voz neuronal de Microsoft Edge, acento rioplatense, +4 % de velocidad)
 **Música:** tema original sintetizado por código (La menor, 120 BPM, pop "curioso" con pizzicato y campanitas)
 
 | Tiempo | Escena | Voz en off | Qué se ve | Sonido |

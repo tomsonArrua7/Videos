@@ -3,18 +3,20 @@
 Todo se sintetiza acá con numpy (nada de samples externos), así la música es
 100 % propia y libre de derechos.
 
-Salida: build/musica.wav, build/sfx.wav, build/audio_final.wav
+Salida (en build/<episodio>/): musica.wav, sfx.wav, audio_final.wav
 """
 import json
 import os
 import subprocess
+import sys
 
 import imageio_ffmpeg
 import numpy as np
 from scipy.io import wavfile
-from scipy.signal import butter, fftconvolve, sosfilt
+from scipy.signal import butter, fftconvolve, lfilter, sosfilt, sosfiltfilt
 
-from tiempos import BUILD, Linea, eventos
+from episodio import BUILD, EP
+from tiempos import Linea, eventos
 
 SR = 44100
 BPM = 120
@@ -264,7 +266,52 @@ def clic():
     return filtro(rng.standard_normal(len(t)), "bandpass", [1500, 6000]) * np.exp(-t * 120)
 
 
+def error_():
+    """Chicharra de 'incorrecto' (dos pulsos)."""
+    t = tt(0.34)
+    y = np.sign(np.sin(2 * np.pi * 160 * t)) + 0.6 * np.sign(np.sin(2 * np.pi * 241 * t))
+    y = filtro(y, "lowpass", 2200) * 0.35
+    return y * ((t < 0.13) | ((t > 0.18) & (t < 0.31))) * env_adsr(len(t), 0.004, 0.03)
+
+
+def poof():
+    t = tt(0.55)
+    ruido = filtro(rng.standard_normal(len(t)), "lowpass", 1600) * np.exp(-t * 7)
+    grave = np.sin(2 * np.pi * np.cumsum(110 + 220 * np.exp(-t * 18)) / SR) * np.exp(-t * 9)
+    return (0.9 * ruido + 0.4 * grave) * env_adsr(len(t), 0.012, 0.05)
+
+
+def nam():
+    """Bocado: 'ñam'."""
+    t = tt(0.17)
+    y = np.sin(2 * np.pi * np.cumsum(130 + 380 * np.exp(-t * 16)) / SR) * np.exp(-t * 20)
+    mordida = filtro(rng.standard_normal(len(t)), "bandpass", [900, 3500]) * np.exp(-t * 70) * 0.45
+    return (y + mordida) * env_adsr(len(t), 0.003, 0.02)
+
+
+def geiger(dur, tasa=18.0):
+    """Clics al azar de un contador Geiger."""
+    y = np.zeros(int(dur * SR))
+    t = 0.0
+    while True:
+        t += rng.exponential(1 / tasa)
+        if t >= dur - 0.01:
+            break
+        tc = tt(0.006)
+        clic_ = filtro(rng.standard_normal(len(tc)), "bandpass", [1800, 9000]) * np.exp(-tc * 900)
+        pegar(y, clic_, t, rng.uniform(0.6, 1.0))
+    return y
+
+
+def brillo_sfx():
+    y = np.zeros(int(1.2 * SR))
+    for i, m in enumerate((84, 88, 91, 96)):
+        pegar(y, glock(hz(m), 1.0), 0.05 * i, 0.6)
+    return y
+
+
 def efectos(dur, L, E):
+    """Efectos comunes (transiciones, gancho y cierre) + los del episodio."""
     fx = np.zeros(int(dur * SR))
     for b in L.bloques[1:]:
         pegar(fx, whoosh(), b["escena_ini"] - 0.22, 0.30)
@@ -275,30 +322,15 @@ def efectos(dur, L, E):
     pegar(fx, pop(700, 200), E["g_cara"], 0.35)
     pegar(fx, whoosh(0.5, 200, 6000), E["g_boom"] - 0.45, 0.22)
     pegar(fx, boom(), E["g_boom"], 0.65)
-    # pulpo
-    for i in range(3):
-        pegar(fx, pop(800 + 200 * i, 300 + 60 * i), E["p_corazones"] + 0.13 * i, 0.35)
-    pegar(fx, bloop(), E["p_azul"], 0.40)
-    # miel
-    pegar(fx, pop(600, 250), E["m_nunca"], 0.25)
-    pegar(fx, golpe(), E["m_piramides"], 0.30)
-    t = E["m_contador"]
-    while t < E["m_contador_fin"]:
-        pegar(fx, tic(), t, 0.16)
-        t += 0.06
-    pegar(fx, golpe(), E["m_comer"], 0.55)
-    pegar(fx, ding(), E["m_comer"] + 0.05, 0.25)
-    # venus
-    pegar(fx, pop(500, 900), E["v_girar"], 0.25)
-    pegar(fx, pop(500, 900), E["v_vuelta"], 0.25)
-    pegar(fx, pop(900, 300), E["v_dia"], 0.30)
-    pegar(fx, golpe(), E["v_anio"], 0.50)
     # cierre
     for i in range(3):
         pegar(fx, pop(700 + 150 * i, 280), E["cierre_ini"] + 0.35 + 0.15 * i, 0.30)
     pegar(fx, pop(900, 400), E["c_comentarios"], 0.30)
     pegar(fx, clic(), E["c_seguinos"] + 0.25, 0.50)
     pegar(fx, ding(), E["c_seguinos"] + 0.30, 0.30)
+    # propios del episodio
+    for t, senal, gan in EP.efectos(E, L, sys.modules[__name__]):
+        pegar(fx, senal, t, gan)
     return fx
 
 
@@ -309,11 +341,70 @@ def leer_mp3(ruta):
     return np.frombuffer(raw, dtype=np.float32).astype(np.float64)
 
 
+def _envolvente(x, tau):
+    """Envolvente RMS con constante de tiempo `tau` (segundos)."""
+    a = np.exp(-1 / (tau * SR))
+    return np.sqrt(np.maximum(lfilter([1 - a], [1, -a], x * x), 1e-12))
+
+
+def procesar_voz(x):
+    """Cadena de voz tipo locución: limpieza, compresión, presencia y de-esser."""
+    x = filtro(x, "highpass", 80)
+    x = x - 0.15 * filtro(x, "bandpass", [200, 450])          # menos "caja"
+    x = x / (np.max(np.abs(x)) + 1e-9)
+    # compresor 3,5:1 (ataque 3 ms, suelta 120 ms): nivela sílabas fuertes y débiles
+    x = x * _ganancia(x, umbral_db=-26.0, ratio=3.5, ataque=0.003, suelta=0.12, medida="rms")
+    x = x / (np.max(np.abs(x)) + 1e-9)
+    x = x + 0.18 * filtro(x, "bandpass", [2000, 4500])        # más presencia
+    x = _deesser(x)                                            # después de comprimir, las eses resaltan
+    x = x / (np.max(np.abs(x)) + 1e-9)
+    # limitador (ataque instantáneo, suelta 60 ms)
+    x = x * _ganancia(x, umbral_db=-6.0, ratio=20.0, ataque=0.0, suelta=0.06, medida="pico")
+    return x / (np.max(np.abs(x)) + 1e-9)
+
+
+def _deesser(x, corte=4500, umbral_db=-13.0, ratio=4.0):
+    """Baja la banda aguda solo cuando se dispara (eses, 'ch', 'z').
+
+    La banda se separa con un filtro de fase cero para que al restarla se
+    cancele de verdad (con fase corrida, restar agudos casi no los baja).
+    """
+    agudos = sosfiltfilt(butter(4, corte, btype="highpass", fs=SR, output="sos"), x)
+    env_a = _envolvente(agudos, 0.002)
+    env_x = _envolvente(x, 0.05)
+    rms_voz = np.sqrt(np.mean(x[env_x > 0.03 * env_x.max()] ** 2))
+    g = np.minimum(1.0, (rms_voz * 10 ** (umbral_db / 20) / env_a) ** (1 - 1 / ratio))
+    return x - agudos * (1 - g)
+
+
+def _ganancia(x, umbral_db, ratio, ataque, suelta, medida, bloque=0.001):
+    """Curva de ganancia de un compresor, calculada por bloques de 1 ms."""
+    nb = int(bloque * SR)
+    n = len(x) // nb + 1
+    xp = np.pad(x, (0, n * nb - len(x))).reshape(n, nb)
+    nivel = np.sqrt(np.mean(xp ** 2, axis=1)) if medida == "rms" else np.max(np.abs(xp), axis=1)
+    if medida == "pico":  # mira un bloque adelante para no dejar pasar picos
+        nivel = np.maximum(nivel, np.append(nivel[1:], 0))
+    nivel_db = 20 * np.log10(nivel + 1e-9)
+    objetivo = np.minimum(0.0, (umbral_db - nivel_db) * (1 - 1 / ratio))
+    ca = np.exp(-bloque / ataque) if ataque > 0 else 0.0
+    cs = np.exp(-bloque / suelta)
+    g = np.empty(n)
+    actual = 0.0
+    for i, obj in enumerate(objetivo):
+        coef = ca if obj < actual else cs
+        actual = coef * actual + (1 - coef) * obj
+        g[i] = actual
+    centros = (np.arange(n) + 0.5) * nb
+    return 10 ** (np.interp(np.arange(len(x)), centros, g) / 20)
+
+
 def guardar(ruta, x):
     wavfile.write(ruta, SR, np.clip(x, -1, 1).astype(np.float32))
 
 
 def main():
+    os.makedirs(BUILD, exist_ok=True)
     L = Linea()
     E = eventos(L)
     dur = L.duracion
@@ -322,9 +413,7 @@ def main():
     voz = np.zeros(n)
     for b in L.bloques:
         pegar(voz, leer_mp3(b["audio"]), b["inicio"])
-    # un toque de "presencia" y compresión suave para la voz
-    voz = voz + 0.25 * filtro(voz, "highpass", 3000)
-    voz = np.tanh(1.6 * voz / (np.max(np.abs(voz)) + 1e-9)) / np.tanh(1.6)
+    voz = procesar_voz(voz)
 
     mus = musica(dur, E["c_fin_voz"] + 0.15)
     mus = mus / (np.max(np.abs(mus)) + 1e-9)

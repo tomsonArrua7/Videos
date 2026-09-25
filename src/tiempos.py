@@ -1,15 +1,14 @@
 """Línea de tiempo compartida entre animación y sonido.
 
-Lee build/timeline.json (generado por voz.py) y expone los momentos clave
-("eventos") anclados a palabras de la narración, así la imagen y los efectos
-de sonido caen justo cuando la voz dice cada cosa.
+Lee build/<episodio>/timeline.json (generado por voz.py) y expone los
+momentos clave ("eventos") anclados a palabras de la narración, así la imagen
+y los efectos de sonido caen justo cuando la voz dice cada cosa.
 """
 import json
 import os
 import unicodedata
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUILD = os.path.join(RAIZ, "build")
+from episodio import BUILD, EP
 
 
 def _norm(s):
@@ -54,7 +53,11 @@ class Linea:
 
 
 def eventos(L):
-    """Momentos clave del video (en segundos) usados por imagen y sonido."""
+    """Momentos clave del video (en segundos) usados por imagen y sonido.
+
+    Los del gancho y el cierre son iguales en todos los episodios; cada
+    episodio suma los suyos en su función eventos().
+    """
     E = {}
     for b in L.bloques[1:]:
         E[f"{b['id']}_ini"] = b["escena_ini"]
@@ -65,21 +68,10 @@ def eventos(L):
     E["g_cara"] = E["g_curio"] + 0.40
     E["g_boom"] = L.palabra("gancho", "cabeza")
 
-    E["p_corazones"] = L.palabra("pulpo", "tres")
-    E["p_azul"] = L.palabra("pulpo", "sangre")
-
-    E["m_nunca"] = L.palabra("miel", "nunca")
-    E["m_piramides"] = L.palabra("miel", "encontraron")
-    E["m_contador"] = L.palabra("miel", "tres")
-    E["m_contador_fin"] = L.fin_palabra("miel", "años")
-    E["m_comer"] = L.palabra("miel", "comer")
-
-    E["v_girar"] = L.palabra("venus", "girar")
-    E["v_vuelta"] = L.palabra("venus", "vuelta")
-    E["v_dia"] = L.palabra("venus", "día")
-    E["v_anio"] = L.palabra("venus", "año")
-
-    E["c_comentarios"] = L.palabra("cierre", "comentarios")
-    E["c_seguinos"] = L.palabra("cierre", "seguinos")
-    E["c_fin_voz"] = L.fin_palabra("cierre", "curiosidades")
+    comentar, seguir = getattr(EP, "PALABRAS_CIERRE", ("comentarios", "seguinos"))
+    ultima = L.por_id["cierre"]["palabras"][-1]["w"]
+    E["c_comentarios"] = L.palabra("cierre", comentar)
+    E["c_seguinos"] = L.palabra("cierre", seguir)
+    E["c_fin_voz"] = L.fin_palabra("cierre", ultima)
+    E.update(EP.eventos(L))
     return E
