@@ -393,6 +393,44 @@ def proyector(dur):
     return y
 
 
+def sable_sfx(dur=1.6):
+    """Sable de luz que se enciende y queda zumbando (motor de proyector + zumbido de tele)."""
+    t = tt(dur)
+    arranque = np.clip(t / 0.25, 0, 1)
+    f = 90 * (0.6 + 0.4 * arranque) * (1 + 0.02 * np.sin(2 * np.pi * 5 * t))
+    motor = sum((1 / k) * np.sin(2 * np.pi * k * np.cumsum(f) / SR) for k in (1, 2, 3, 4))
+    tele_ = np.sin(2 * np.pi * np.cumsum(np.full(len(t), 470.0)) / SR) * 0.25
+    tele_ += filtro(rng.standard_normal(len(t)), "bandpass", [2000, 5000]) * 0.08
+    y = (motor * 0.6 + tele_) * (0.3 + 0.7 * arranque) * (1 + 0.15 * np.sin(2 * np.pi * 11 * t))
+    y[: int(0.3 * SR)] += filtro(rng.standard_normal(int(0.3 * SR)), "bandpass", [300, 3000]) * \
+        np.linspace(0.6, 0, int(0.3 * SR))
+    return np.tanh(1.4 * y) * env_adsr(len(t), 0.01, 0.4) * 0.8
+
+
+def redoblante():
+    t = tt(0.25)
+    parche = np.sin(2 * np.pi * np.cumsum(190 + 60 * np.exp(-t * 40)) / SR) * np.exp(-t * 25)
+    bordona = filtro(rng.standard_normal(len(t)), "bandpass", [1500, 7000]) * np.exp(-t * 18)
+    return np.tanh(1.5 * (0.7 * parche + 0.8 * bordona))
+
+
+def quiebre():
+    """Palito de madera que se parte."""
+    t = tt(0.18)
+    chasq = filtro(rng.standard_normal(len(t)), "bandpass", [1200, 6000]) * np.exp(-t * 60)
+    madera = np.sin(2 * np.pi * 900 * t) * np.exp(-t * 80) * 0.5
+    return np.tanh(2 * (chasq + madera))
+
+
+def viento(dur):
+    t = tt(dur)
+    y = filtro(rng.standard_normal(len(t)), "bandpass", [250, 1200]) * (0.5 + 0.5 * np.sin(2 * np.pi * 0.4 * t) ** 2)
+    rampa = int(min(0.5, dur / 3) * SR)
+    y[:rampa] *= np.linspace(0, 1, rampa)
+    y[-rampa:] *= np.linspace(1, 0, rampa)
+    return y * 0.6
+
+
 def brillo_sfx():
     y = np.zeros(int(1.2 * SR))
     for i, m in enumerate((84, 88, 91, 96)):

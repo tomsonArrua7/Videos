@@ -10,6 +10,8 @@ Serie de videos animados de **30 segundos**, verticales (1080×1920, 30 fps), li
 | 4 | 🎬 películas: Jurassic Park · Volver al futuro · Titanic | Tomás (hombre, Argentina) | [`ep04_peliculas.mp4`](output/ep04_peliculas.mp4) · [portada](output/ep04_portada.png) | [guion](guiones/ep04_peliculas.md) |
 | 5 | 📺 series: El Chavo del 8 · Breaking Bad · Friends | Tomás (hombre, Argentina) | [`ep05_series.mp4`](output/ep05_series.mp4) · [portada](output/ep05_portada.png) | [guion](guiones/ep05_series.md) |
 | 6 | 🎨 dibujos animados: Los Simpson · Bob Esponja · Mickey Mouse | Tomás (hombre, Argentina) | [`ep06_dibujos_animados.mp4`](output/ep06_dibujos_animados.mp4) · [portada](output/ep06_portada.png) | [guion](guiones/ep06_dibujos_animados.md) |
+| 7 | 🎬 películas 2: Star Wars · Buscando a Nemo · Harry Potter | Tomás (hombre, Argentina) | [`ep07_peliculas_2.mp4`](output/ep07_peliculas_2.mp4) · [portada](output/ep07_portada.png) | [guion](guiones/ep07_peliculas_2.md) |
+| 8 | 🎬 películas 3: Psicosis · El Mago de Oz · Frozen | Tomás (hombre, Argentina) | [`ep08_peliculas_3.mp4`](output/ep08_peliculas_3.mp4) · [portada](output/ep08_portada.png) | [guion](guiones/ep08_peliculas_3.md) |
 
 Cada guion trae la tabla de escenas, los datos verificados y un texto listo para publicar.
 En los episodios de películas, series y dibujos se usan objetos y guiños genéricos: nunca se
@@ -48,10 +50,10 @@ cd src && python animacion.py ep02 --previa 2.5 5 12.3   # -> build/ep02/previa/
 
 ### Hacer un episodio nuevo
 
-1. Copiá el último episodio (por ejemplo `src/episodios/ep03.py`) como `ep04.py`.
+1. Copiá el último episodio (por ejemplo `src/episodios/ep08.py`) como `ep09.py`.
 2. Cambiá `SLUG`, `VOZ` y los textos de `BLOQUES` (el primero es el gancho y el último el cierre; tienen que seguir diciendo "tres", "curiosidades" y "cabeza" en el gancho).
 3. Anclá tus animaciones a palabras en `eventos()`, sumá efectos en `efectos()` y dibujá las escenas.
-4. `python hacer_video.py ep04`. La velocidad de la voz se ajusta sola para que entre en 30 s; si no entra, avisa que hay que acortar el texto.
+4. `python hacer_video.py ep09`. La velocidad de la voz se ajusta sola para que entre en 30 s; si no entra, avisa que hay que acortar el texto.
 
 Voces en español argentino: `es-AR-ElenaNeural` (mujer) y `es-AR-TomasNeural` (hombre). Hay más en `edge-tts --list-voices`.
 

@@ -508,3 +508,46 @@ def onda(c, p0, p1, t, color, grosor=7, amp=18, ciclos=4, visible=1.0):
         pts.append((p0[0] + dx * u + px * off, p0[1] + dy * u + py * off))
     if len(pts) > 1:
         c.linea(pts, color, grosor)
+
+
+def pelicula_vieja(fr, t, color=0.0):
+    """Filtro de película antigua (blanco y negro, grano, rayas, parpadeo).
+
+    `color` = 0 es blanco y negro puro; 1 deja el cuadro original en color.
+    """
+    if color >= 1:
+        return fr
+    rng = np.random.default_rng(int(t * 24))
+    grano = Image.fromarray(rng.integers(0, 255, (H // 8, W // 8), dtype=np.uint8), "L").resize((W, H))
+    bn = Image.blend(fr.convert("L"), grano, 0.08).convert("RGBA")
+    capa = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(capa)
+    for _ in range(3):
+        x = rng.uniform(0, W)
+        d.line([(x, 0), (x + rng.uniform(-20, 20), H)], fill=(255, 255, 255, 60), width=2)
+    bn.alpha_composite(capa)
+    titila = 0.9 + 0.1 * rng.uniform()
+    bn = Image.eval(bn, lambda v: int(v * titila))
+    return Image.blend(bn, fr, color) if color > 0 else bn
+
+
+def sepia(fr, cantidad=1.0):
+    """Tono sepia (como las escenas de Kansas); `cantidad` 0..1."""
+    if cantidad <= 0:
+        return fr
+    gris = np.asarray(fr.convert("L"), np.float32)[..., None] / 255
+    tono = np.array([255, 226, 180], np.float32) * gris * 1.05
+    sep = Image.fromarray(np.clip(tono, 0, 255).astype(np.uint8), "RGB").convert("RGBA")
+    return Image.blend(fr, sep, cantidad)
+
+
+def nota_musical(c, x, y, k=1.0, color=(255, 255, 255), doble=False):
+    """Nota musical dibujada (las tipografías no traen el símbolo)."""
+    c.elipse(x, y, 16 * k, 12 * k, fill=color)
+    c.linea([(x + 14 * k, y - 2 * k), (x + 14 * k, y - 70 * k)], color, 6 * k, puntas=False)
+    if doble:
+        c.elipse(x + 50 * k, y - 10 * k, 16 * k, 12 * k, fill=color)
+        c.linea([(x + 64 * k, y - 12 * k), (x + 64 * k, y - 80 * k)], color, 6 * k, puntas=False)
+        c.linea([(x + 14 * k, y - 70 * k), (x + 64 * k, y - 80 * k)], color, 12 * k)
+    else:
+        c.linea([(x + 14 * k, y - 70 * k), (x + 36 * k, y - 50 * k)], color, 8 * k)
