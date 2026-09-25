@@ -9,6 +9,7 @@ Salida: build/<episodio>/voz/seg_XX.mp3 y build/<episodio>/timeline.json
 import asyncio
 import json
 import os
+import re
 import ssl
 import subprocess
 import sys
@@ -19,6 +20,7 @@ import edge_tts.communicate as _edge_comm
 import imageio_ffmpeg
 
 from episodio import BUILD, EP, NOMBRE
+from tiempos import _norm
 
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 
@@ -40,9 +42,53 @@ async def _send_str_hq(self, data, *args, **kwargs):
 
 aiohttp.ClientWebSocketResponse.send_str = _send_str_hq
 
-INICIO = 0.25      # silencio antes de la primera frase
-PAUSA = 0.30       # respiro entre bloques
-FINAL_MIN = 0.9    # aire al final para el cierre musical
+INICIO = 0.25                                  # silencio antes de la primera frase
+PAUSA = getattr(EP, "VOZ_PAUSA", 0.30)         # respiro entre bloques
+FINAL_MIN = getattr(EP, "VOZ_FINAL", 0.9)      # aire al final para el cierre musical
+
+
+# Pronunciación: en el guion se escribe {cómo se muestra|cómo se dice}, por ejemplo
+# "{Jurassic Park|Yúrasic Park}". La voz lee la segunda forma y los subtítulos
+# muestran la primera. Lo dicho puede tener más palabras que lo mostrado
+# ("{Jesse Pinkman|Yési Pínc man}"): las sobrantes se suman a la última palabra.
+MARCA = re.compile(r"\{([^|{}]+)\|([^{}]+)\}")
+PUNTUACION = ",.:;!?¡¿…\"'()"
+
+
+def separar(texto):
+    """Devuelve (texto a decir, texto a mostrar, [(palabra dicha, palabra mostrada)])."""
+    pares = []
+    pos = 0
+    for m in list(MARCA.finditer(texto)) + [None]:
+        tramo = texto[pos:m.start() if m else len(texto)]
+        pares += [(w, w) for w in tramo.split()]
+        if m:
+            mostrar, decir = m.group(1).split(), m.group(2).split()
+            if len(decir) < len(mostrar):
+                raise ValueError(f"'{m.group(0)}': lo dicho no puede tener menos palabras que lo mostrado")
+            mostrar += [None] * (len(decir) - len(mostrar))
+            pares += list(zip(decir, mostrar))
+            pos = m.end()
+    return MARCA.sub(lambda m: m.group(2), texto), MARCA.sub(lambda m: m.group(1), texto), pares
+
+
+def a_mostrar(palabras, pares):
+    """Cambia cada palabra que devolvió la voz por su versión para subtítulos."""
+    j = 0
+    salida = []
+    for w in palabras:
+        for k in range(j, len(pares)):
+            if _norm(pares[k][0]) == _norm(w["w"]):
+                j = k + 1
+                if pares[k][1] is None and salida:   # sílaba extra de un nombre: se une a la anterior
+                    salida[-1]["d"] = w["t"] + w["d"] - salida[-1]["t"]
+                    w = None
+                else:
+                    w["w"] = pares[k][1].strip(PUNTUACION)
+                break
+        if w is not None:
+            salida.append(w)
+    return salida
 
 
 async def sintetizar(texto, destino, rate):
@@ -76,10 +122,11 @@ async def generar(rate):
     bloques = []
     for i, b in enumerate(EP.BLOQUES):
         ruta = os.path.join(BUILD, "voz", f"seg_{i:02d}.mp3")
-        palabras = await sintetizar(b["texto"], ruta, rate)
+        decir, mostrar, pares = separar(b["texto"])
+        palabras = a_mostrar(await sintetizar(decir, ruta, rate), pares)
         # Edge agrega un poco de silencio al final; usamos el fin de la última palabra.
         fin_habla = palabras[-1]["t"] + palabras[-1]["d"]
-        bloques.append({**b, "audio": ruta, "palabras": palabras,
+        bloques.append({**b, "texto": mostrar, "texto_dicho": decir, "audio": ruta, "palabras": palabras,
                         "habla": fin_habla, "archivo_dur": duracion_audio(ruta)})
     return bloques
 
@@ -90,7 +137,8 @@ def main():
     for pct in range(getattr(EP, "VOZ_VELOCIDAD_MIN", 0), 21, 2):
         rate = f"+{pct}%"
         bloques = asyncio.run(generar(rate))
-        total = INICIO + sum(b["habla"] for b in bloques) + PAUSA * (len(bloques) - 1)
+        total = (INICIO + sum(b["habla"] + b.get("pausa_despues", 0) for b in bloques)
+                 + PAUSA * (len(bloques) - 1))
         print(f"velocidad {rate}: narración {total:.2f}s")
         if total <= EP.DURACION - FINAL_MIN:
             break
@@ -104,7 +152,7 @@ def main():
     t = INICIO
     for b in bloques:
         b["inicio"] = round(t, 3)
-        t += b["habla"] + PAUSA + extra
+        t += b["habla"] + PAUSA + extra + b.get("pausa_despues", 0)
     # Cada escena empieza un poquito antes que su voz (entra la transición).
     for i, b in enumerate(bloques):
         b["escena_ini"] = 0.0 if i == 0 else round(b["inicio"] - 0.25, 3)

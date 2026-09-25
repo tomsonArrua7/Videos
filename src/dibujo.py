@@ -359,15 +359,17 @@ def cartel(txt, sub=None, color=(255, 214, 10), fondo=(70, 30, 6), ancho=640, ta
     """Cartel oscuro con borde de color (contadores tipo '+3.000 AÑOS')."""
     tx = texto(txt, "titulo", tam, color=color)
     st = texto(sub, "negra", 40, color=(255, 255, 255)) if sub else None
-    h = 150 + (st.height - 6 if st else 0)
+    ancho = max(ancho, tx.width + 70)
+    alto_txt = tx.height + (st.height - 6 if st else 0)
+    h = max(150, alto_txt + 34)
     c = Capa(0, 0, ancho + 12, h + 18, ss=3)
     c.rrect(6, 14, ancho + 6, h + 14, 34, fill=(20, 8, 0, 120))
     c.rrect(6, 6, ancho + 6, h + 6, 34, fill=fondo, borde=color, grosor=6)
     im = c.imagen()
-    y_tx = 6 + 75 - tx.height / 2 + 4
+    y_tx = 6 + (h - alto_txt) / 2 + 3
     im.alpha_composite(tx, (int(6 + ancho / 2 - tx.width / 2), int(y_tx)))
     if st:
-        im.alpha_composite(st, (int(6 + ancho / 2 - st.width / 2), int(y_tx + tx.height - 14)))
+        im.alpha_composite(st, (int(6 + ancho / 2 - st.width / 2), int(y_tx + tx.height - 6)))
     return im
 
 
@@ -463,3 +465,46 @@ def latido(t, fase=0.0):
 def parpadeo(t, periodo=2.7, fase=0.0):
     ph = (t + fase) % periodo
     return abs(1 - 2 * ph / 0.16) if ph < 0.16 else 1.0
+
+
+def tachar(c, x, y, tam, p=1.0, grosor=22):
+    """Cruz roja con borde blanco; `p` la hace crecer al aparecer."""
+    if p <= 0:
+        return
+    h = tam * p / 2
+    for col, g in (((255, 255, 255), grosor + 12), ((235, 40, 60), grosor)):
+        c.linea([(x - h, y - h), (x + h, y + h)], col, g)
+        c.linea([(x + h, y - h), (x - h, y + h)], col, g)
+
+
+def tilde(c, x, y, tam, p=1.0, grosor=22, color=(40, 190, 90)):
+    """Tilde de 'correcto' con borde blanco."""
+    if p <= 0:
+        return
+    h = tam * p / 2
+    pts = [(x - h, y), (x - h * 0.3, y + h * 0.7), (x + h, y - h * 0.8)]
+    c.linea(pts, (255, 255, 255), grosor + 12)
+    c.linea(pts, color, grosor)
+
+
+def elipse_rotada(cx, cy, rx, ry, grados, n=48):
+    """Puntos de una elipse girada (para usar con Capa.poligono)."""
+    a = math.radians(grados)
+    return [(cx + rx * math.cos(u) * math.cos(a) - ry * math.sin(u) * math.sin(a),
+             cy + rx * math.cos(u) * math.sin(a) + ry * math.sin(u) * math.cos(a))
+            for u in np.linspace(0, 2 * math.pi, n, endpoint=False)]
+
+
+def onda(c, p0, p1, t, color, grosor=7, amp=18, ciclos=4, visible=1.0):
+    """Onda de sonido que viaja de p0 a p1 (se dibuja hasta `visible`)."""
+    n = 40
+    dx, dy = p1[0] - p0[0], p1[1] - p0[1]
+    largo = math.hypot(dx, dy) or 1
+    px, py = -dy / largo, dx / largo
+    pts = []
+    for i in range(int(n * visible) + 1):
+        u = i / n
+        off = amp * math.sin(2 * math.pi * ciclos * u - t * 10) * math.sin(math.pi * u)
+        pts.append((p0[0] + dx * u + px * off, p0[1] + dy * u + py * off))
+    if len(pts) > 1:
+        c.linea(pts, color, grosor)

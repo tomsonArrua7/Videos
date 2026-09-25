@@ -335,6 +335,64 @@ def subida(dur=0.7, f0=300, f1=1400):
     return y * env_adsr(len(t), 0.02, 0.12) * 0.6
 
 
+def rugido_sfx(dur=0.75):
+    """Rugido armado como en el cine: grave de 'caimán', medio de 'tigre' y agudo de 'elefante'."""
+    t = tt(dur)
+    env = np.sin(np.pi * np.clip(t / dur, 0, 1)) ** 0.6
+    vib = 1 + 0.06 * np.sin(2 * np.pi * 7 * t)
+    grave = np.tanh(3 * np.sin(2 * np.pi * np.cumsum(62 * vib) / SR))
+    medio = filtro(np.sign(np.sin(2 * np.pi * np.cumsum(170 * vib * (1 - 0.3 * t / dur)) / SR)), "bandpass", [250, 900])
+    agudo = np.sin(2 * np.pi * np.cumsum(720 * (1 + 0.15 * np.sin(2 * np.pi * 3 * t))) / SR) * np.exp(-t * 3)
+    ruido = filtro(rng.standard_normal(len(t)), "bandpass", [150, 2500])
+    y = 0.8 * grave + 0.7 * medio + 0.25 * agudo + 0.6 * ruido
+    return np.tanh(1.6 * y) * env * env_adsr(len(t), 0.03, 0.15)
+
+
+def chisporroteo(dur=0.6):
+    """Chispazos eléctricos."""
+    y = np.zeros(int(dur * SR))
+    tc = tt(0.02)
+    for _ in range(int(dur * 45)):
+        chasq = filtro(rng.standard_normal(len(tc)), "highpass", 2500) * np.exp(-tc * 300)
+        pegar(y, chasq, rng.uniform(0, dur - 0.02), rng.uniform(0.3, 1.0))
+    y = y + 0.25 * np.sin(2 * np.pi * 120 * tt(dur)) * np.exp(-tt(dur) * 3)
+    return y / (np.max(np.abs(y)) + 1e-9) * 0.9
+
+
+def zapping_sfx():
+    """Clic de control remoto + fogonazo de estática."""
+    t = tt(0.14)
+    y = filtro(rng.standard_normal(len(t)), "highpass", 1200) * np.exp(-t * 25) * 0.6
+    pegar(y, clic(), 0.0, 1.2)
+    return y / (np.max(np.abs(y)) + 1e-9) * 0.9
+
+
+def tiza(dur=0.5):
+    """Tiza raspando el pizarrón."""
+    t = tt(dur)
+    raspa = filtro(rng.standard_normal(len(t)), "bandpass", [1800, 5000])
+    return raspa * (0.5 + 0.5 * np.abs(np.sin(2 * np.pi * 9 * t))) * env_adsr(len(t), 0.02, 0.08) * 0.5
+
+
+def marcador(dur=0.35):
+    t = tt(dur)
+    y = filtro(rng.standard_normal(len(t)), "bandpass", [900, 3500])
+    return y * (0.6 + 0.4 * np.sin(2 * np.pi * 14 * t)) * env_adsr(len(t), 0.01, 0.05) * 0.5
+
+
+def proyector(dur):
+    """Traqueteo de proyector antiguo (24 cuadros por segundo)."""
+    y = np.zeros(int(dur * SR))
+    tc = tt(0.012)
+    golpe_ = filtro(rng.standard_normal(len(tc)), "bandpass", [600, 3000]) * np.exp(-tc * 400)
+    for k in range(int(dur * 24)):
+        pegar(y, golpe_, k / 24, 0.5 + 0.2 * (k % 2))
+    rampa = int(min(0.3, dur / 3) * SR)
+    y[:rampa] *= np.linspace(0, 1, rampa)
+    y[-rampa:] *= np.linspace(1, 0, rampa)
+    return y
+
+
 def brillo_sfx():
     y = np.zeros(int(1.2 * SR))
     for i, m in enumerate((84, 88, 91, 96)):

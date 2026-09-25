@@ -7,8 +7,13 @@ Serie de videos animados de **30 segundos**, verticales (1080×1920, 30 fps), li
 | 1 | 🐙 pulpo · 🍯 miel · 🪐 Venus | Tomás (hombre, Argentina) | [`ep01_pulpo_miel_venus.mp4`](output/ep01_pulpo_miel_venus.mp4) · [portada](output/ep01_portada.png) | [guion](guiones/ep01_pulpo_miel_venus.md) |
 | 2 | 🦈 tiburón · 🦩 flamenco · 🍌 banana | Elena (mujer, Argentina) | [`ep02_tiburon_flamenco_banana.mp4`](output/ep02_tiburon_flamenco_banana.mp4) · [portada](output/ep02_portada.png) | [guion](guiones/ep02_tiburon_flamenco_banana.md) |
 | 3 | 🦦 nutrias · ⚡ rayo · 🌳 árboles | Elena (mujer, Argentina) | [`ep03_nutrias_rayo_arboles.mp4`](output/ep03_nutrias_rayo_arboles.mp4) · [portada](output/ep03_portada.png) | [guion](guiones/ep03_nutrias_rayo_arboles.md) |
+| 4 | 🎬 películas: Jurassic Park · Volver al futuro · Titanic | Tomás (hombre, Argentina) | [`ep04_peliculas.mp4`](output/ep04_peliculas.mp4) · [portada](output/ep04_portada.png) | [guion](guiones/ep04_peliculas.md) |
+| 5 | 📺 series: El Chavo del 8 · Breaking Bad · Friends | Tomás (hombre, Argentina) | [`ep05_series.mp4`](output/ep05_series.mp4) · [portada](output/ep05_portada.png) | [guion](guiones/ep05_series.md) |
+| 6 | 🎨 dibujos animados: Los Simpson · Bob Esponja · Mickey Mouse | Tomás (hombre, Argentina) | [`ep06_dibujos_animados.mp4`](output/ep06_dibujos_animados.mp4) · [portada](output/ep06_portada.png) | [guion](guiones/ep06_dibujos_animados.md) |
 
 Cada guion trae la tabla de escenas, los datos verificados y un texto listo para publicar.
+En los episodios de películas, series y dibujos se usan objetos y guiños genéricos: nunca se
+dibujan personajes ni logos con derechos de autor.
 
 ## Cómo está hecho
 
@@ -22,6 +27,7 @@ Todo se genera con código, sin editor de video:
 | Animación común | Gancho (la carita que explota), cierre, subtítulos karaoke, transiciones y exportación | `src/animacion.py` |
 | Kit de dibujo | Lienzo con antialias, textos, fondos, carteles, sprites | `src/dibujo.py` |
 | Sincronía | Momentos clave anclados a palabras de la voz | `src/tiempos.py` |
+| Control de la voz | Whisper escucha la narración y marca lo que no se entiende | `src/verificar_voz.py` |
 
 ## Generar los videos
 
@@ -48,6 +54,28 @@ cd src && python animacion.py ep02 --previa 2.5 5 12.3   # -> build/ep02/previa/
 4. `python hacer_video.py ep04`. La velocidad de la voz se ajusta sola para que entre en 30 s; si no entra, avisa que hay que acortar el texto.
 
 Voces en español argentino: `es-AR-ElenaNeural` (mujer) y `es-AR-TomasNeural` (hombre). Hay más en `edge-tts --list-voices`.
+
+### Guiones que suenan bien
+
+La voz es una máquina leyendo: el guion se escribe para el oído.
+
+- **Frases cortas** y puntuación donde se respira; los signos `¡!` le dan energía al remate.
+- **Números en palabras** ("cuarenta y dos", no "42").
+- **Nombres en inglés:** se escribe `{como se ve|como se dice}`. La voz lee la segunda forma y los
+  subtítulos muestran la primera. Por ejemplo `{Friends|Fréns}` o `{Jesse Pinkman|Yési Pínc man}`.
+  Lo dicho puede tener más palabras que lo mostrado.
+- **Evitar choques de sonidos** ("a Rose son" se escuchaba "arroz se son") y palabras ambiguas
+  ("zapping" → "cambiás de canal").
+- Si hace falta un respiro después de un bloque (por ejemplo, para que ruja un dinosaurio), se agrega
+  `"pausa_despues": 0.6` a ese bloque. `VOZ_PAUSA` y `VOZ_FINAL` ajustan las pausas del episodio.
+
+Para comprobarlo sin escuchar, está el verificador (opcional, necesita `pip install -r requirements-verificacion.txt`):
+
+```bash
+cd src
+python verificar_voz.py ep05                                   # transcribe y marca lo que no se entiende
+python verificar_voz.py ep05 --probar "La serie Frends." "La serie Fréns."   # compara variantes
+```
 
 ## Licencias y créditos
 
