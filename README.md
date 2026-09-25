@@ -21,6 +21,17 @@ Cada guion trae la tabla de escenas, los datos verificados y un texto listo para
 En los episodios de películas, series y dibujos se usan objetos y guiños genéricos: nunca se
 dibujan personajes ni logos con derechos de autor.
 
+## Cuenta de quiz: trivias.fast
+
+Foto de perfil con el cronómetro y el "?" de los quiz, pensada para verse recortada en círculo:
+
+| Versión | Archivo | Para qué |
+|---|---|---|
+| Solo ícono | [`trivias_fast_perfil.png`](output/marca/trivias_fast_perfil.png) | Foto de perfil (se lee aun chiquita) |
+| Con el nombre | [`trivias_fast_perfil_nombre.png`](output/marca/trivias_fast_perfil_nombre.png) | Donde se vea más grande |
+
+Se generan con `cd src && python perfil.py` (1080×1080).
+
 ## Cómo está hecho
 
 Todo se genera con código, sin editor de video:
