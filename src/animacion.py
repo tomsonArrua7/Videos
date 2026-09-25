@@ -162,12 +162,17 @@ def escena_cierre(t):
     linea1, linea2 = getattr(EP, "CIERRE_TITULO", ("¿CUÁL TE", "SORPRENDIÓ MÁS?"))
     titulo(fr, t, linea1, t0 + 0.1, y=320, tam=130)
     titulo(fr, t, linea2, t0 + 0.22, y=460, tam=130, color=(255, 230, 90))
-    aros = [EP.ACENTO[i] for i in ORDEN[1:4]]
-    for i, x in enumerate((200, 540, 880)):
-        s = pop(t, t0 + 0.35 + 0.15 * i, 0.45)
+    # una tarjeta por curiosidad (o pregunta): tres en fila o, si son más, en zigzag y más chicas
+    n = len(EP.ICONOS)
+    aros = [EP.ACENTO[i] for i in ORDEN[1:1 + n]]
+    k = 1.0 if n <= 3 else 0.74
+    paso = 340 if n <= 3 else 205
+    for i in range(n):
+        x = 540 + (i - (n - 1) / 2) * paso
+        s = pop(t, t0 + 0.35 + 0.15 * i, 0.45) * k
         if s <= 0:
             continue
-        y = 790 + 12 * math.sin(t * 3 - i * 0.9)
+        y = 790 + (0 if n <= 3 else (-55 if i % 2 == 0 else 55)) + 12 * math.sin(t * 3 - i * 0.9)
         c = Capa(int(x - 170), int(y - 170), 340, 350)
         r = 132 * s
         c.circulo(x, y + 12, r, fill=(20, 0, 60, 90))

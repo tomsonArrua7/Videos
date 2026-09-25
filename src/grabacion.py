@@ -286,7 +286,7 @@ def procesar(ruta, bloques, carpeta, presupuesto, separar):
     env = _envolvente(x)
     ruido = np.percentile(env, 10)
     umbral_voz = max(ruido + 18, env.max() - 32)     # vocales y consonantes fuertes
-    umbral_cola = ruido + 12                         # finales suaves ("s", "f")
+    umbral_cola = max(ruido + 12, env.max() - 40)    # finales suaves ("s", "f"), no respiraciones ni eco
 
     salida, informe, acortado = [], [], 0.0
     for i, (b, texto, (r, s, e)) in enumerate(zip(bloques, textos, ubicados)):

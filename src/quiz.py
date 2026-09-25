@@ -208,11 +208,34 @@ def cronometro(c, x, y, r, t, aguja, color=(255, 214, 10)):
     c.circulo(x, y, r * 0.06, fill=TINTA)
 
 
-def escena_gancho(t, E, FONDOS, etiqueta):
-    """Gancho de los quiz: "3 PREGUNTAS", la etiqueta y un cronómetro con un signo de pregunta."""
+def eventos_gancho(L, numero, etiqueta=None):
+    """Palabras del gancho: el número de preguntas, "segundos", "acertás" y (opcional) la de la etiqueta."""
+    E = {"gq_titulo": L.palabra("gancho", numero), "gq_segundos": L.palabra("gancho", "segundos"),
+         "gq_acertas": L.palabra("gancho", "acertás")}
+    if etiqueta:
+        E["gq_etiqueta"] = L.palabra("gancho", etiqueta)
+    return E
+
+
+def efectos_gancho(E, S):
+    fx = [(E["gq_titulo"], S.golpe(), 0.5), (E["gq_segundos"] - 0.1, S.pop(1000, 300), 0.3),
+          (E["gq_acertas"], S.pop(600, 180), 0.4), (E["gq_acertas"] + 0.05, S.brillo_sfx(), 0.22)]
+    if "gq_etiqueta" in E:
+        fx.append((E["gq_etiqueta"], S.pop(1200, 400), 0.3))
+    for i in range(4):
+        fx.append((E["gq_segundos"] + 0.15 + 0.3 * i, S.tictac(i % 2 == 0), 0.35))
+    return fx
+
+
+def sacudidas_gancho(E):
+    return [(E["gq_titulo"], 10, 0.25), (E["gq_acertas"], 14, 0.3)]
+
+
+def escena_gancho(t, E, FONDOS, etiqueta, titulo="3 PREGUNTAS"):
+    """Gancho de los quiz: el título, la etiqueta y un cronómetro con un signo de pregunta."""
     fr = FONDOS["gancho"].copy()
     rayos_sol(fr, 540, 960, t * 0.35, n=16, color=(255, 255, 255, 22))
-    ta, tp, ts = E["gq_acertas"], E["gq_preguntas"], E["gq_segundos"]
+    ta, ts, tt = E["gq_acertas"], E["gq_segundos"], E["gq_titulo"]
     # cronómetro con "?" (el signo late al preguntar "¿cuántas acertás?")
     s = pop(t, ts - 0.1, 0.45)
     if s > 0:
@@ -227,12 +250,11 @@ def escena_gancho(t, E, FONDOS, etiqueta):
     if t >= ta:
         chispas(fr, t, ta, 540, 1000, n=30, seed=11, arriba=True)
     # textos
-    s3 = 0 if t < E["gq_tres"] else lerp(2.4, 1.0, e_out(prog(t, E["gq_tres"], 0.22)))
+    s3 = 0 if t < tt else lerp(2.4, 1.0, e_out(prog(t, tt, 0.22)))
     if s3 > 0:
-        componer(fr, texto_ajustado("3 PREGUNTAS", "titulo", 160, 1000, color=(255, 255, 255), borde=14, sombra=12),
-                 540, 330 + 5 * math.sin(t * 2.2), escala=s3 if t < tp else 1.0,
-                 alpha=clamp((t - E["gq_tres"]) / 0.08))
-    s = pop(t, ts, 0.4)
+        componer(fr, texto_ajustado(titulo, "titulo", 160, 1000, color=(255, 255, 255), borde=14, sombra=12),
+                 540, 330 + 5 * math.sin(t * 2.2), escala=s3, alpha=clamp((t - tt) / 0.08))
+    s = pop(t, E.get("gq_etiqueta", ts), 0.4)
     if s > 0:
         componer(fr, _pildora(etiqueta, (255, 0, 110), 50), 540, 480, escala=s, rot=-3)
     # brillitos que titilan alrededor

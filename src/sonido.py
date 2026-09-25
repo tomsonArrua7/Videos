@@ -492,7 +492,7 @@ def efectos(dur, L, E):
         pegar(fx, whoosh(0.5, 200, 6000), E["g_boom"] - 0.45, 0.22)
         pegar(fx, boom(), E["g_boom"], 0.65)
     # cierre
-    for i in range(3):
+    for i in range(len(EP.ICONOS)):
         pegar(fx, pop(700 + 150 * i, 280), E["cierre_ini"] + 0.35 + 0.15 * i, 0.30)
     pegar(fx, pop(900, 400), E["c_comentarios"], 0.30)
     pegar(fx, clic(), E["c_seguinos"] + 0.25, 0.50)

@@ -75,10 +75,7 @@ def iniciar(eventos_, escenas):
 def eventos(L):
     return {
         **quiz.eventos(L, PREGUNTAS),
-        "gq_tres": L.palabra("gancho", "tres"),
-        "gq_preguntas": L.palabra("gancho", "preguntas"),
-        "gq_segundos": L.palabra("gancho", "segundos"),
-        "gq_acertas": L.palabra("gancho", "acertás"),
+        **quiz.eventos_gancho(L, "tres"),
         "k_parecidas": L.palabra("p1", "parecidas"),
         "k_policia": L.palabra("p1", "policía"),
         "l_siempre": L.palabra("p2", "siempre"),
@@ -105,11 +102,7 @@ def _trompeta(S, dur=0.6):
 
 
 def efectos(E, L, S):
-    fx = quiz.efectos(E, S, PREGUNTAS)
-    fx += [(E["gq_tres"], S.golpe(), 0.5), (E["gq_segundos"] - 0.1, S.pop(1000, 300), 0.3),
-           (E["gq_acertas"], S.pop(600, 180), 0.4), (E["gq_acertas"] + 0.05, S.brillo_sfx(), 0.22)]
-    for i in range(4):
-        fx.append((E["gq_segundos"] + 0.15 + 0.3 * i, S.tictac(i % 2 == 0), 0.35))
+    fx = quiz.efectos(E, S, PREGUNTAS) + quiz.efectos_gancho(E, S)
     fx += [(E["k_parecidas"], S.pop(900, 350), 0.22), (E["k_policia"], _sirena(S), 0.07),
            (E["p2_revela"] + 0.35, S.brillo_sfx(), 0.18), (E["l_hace"], S.whoosh(0.4, 3000, 300), 0.12),
            (E["n_toneladas"], S.golpe(), 0.40), (E["n_elefantes"] + 0.1, _trompeta(S), 0.10)]
@@ -117,7 +110,7 @@ def efectos(E, L, S):
 
 
 def sacudidas(E):
-    return [(E["gq_tres"], 10, 0.25), (E["gq_acertas"], 14, 0.3), (E["n_toneladas"], 12, 0.3)]
+    return quiz.sacudidas_gancho(E) + [(E["n_toneladas"], 12, 0.3)]
 
 
 def momento_portada(E):

@@ -129,6 +129,8 @@ class Capa:
                                  width=self.g(grosor) if borde else 0)
 
     def arco(self, cx, cy, rx, ry, a0, a1, color, grosor):
+        if rx <= 0 or ry <= 0:
+            return
         a, b = self.p(cx - rx, cy - ry)
         c, d = self.p(cx + rx, cy + ry)
         self.d.arc([a, b, c, d], a0, a1, fill=color, width=self.g(grosor))
