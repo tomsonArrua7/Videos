@@ -303,6 +303,38 @@ def geiger(dur, tasa=18.0):
     return y
 
 
+def trueno():
+    """Chasquido del rayo + retumbe grave que se apaga de a poco."""
+    t = tt(2.4)
+    chasquido = filtro(rng.standard_normal(len(t)), "highpass", 1500) * np.exp(-t * 28)
+    retumbe = filtro(rng.standard_normal(len(t)), "lowpass", 200)
+    retumbe *= np.exp(-t * 1.5) * (0.55 + 0.45 * np.sin(2 * np.pi * 2.6 * t) ** 2)
+    retumbe /= np.max(np.abs(retumbe)) + 1e-9
+    return np.tanh(1.4 * (0.8 * chasquido + retumbe)) * env_adsr(len(t), 0.002, 0.4)
+
+
+def lluvia(dur):
+    """Colchón de lluvia con gotitas sueltas, con entrada y salida suaves."""
+    n = int(dur * SR)
+    y = filtro(rng.standard_normal(n), "bandpass", [900, 7000]) * 0.25
+    for _ in range(int(dur * 35)):
+        tg = tt(0.01)
+        gota = np.sin(2 * np.pi * rng.uniform(2500, 5000) * tg) * np.exp(-tg * 500)
+        pegar(y, gota, rng.uniform(0, dur), rng.uniform(0.1, 0.35))
+    rampa = int(min(0.4, dur / 3) * SR)
+    y[:rampa] *= np.linspace(0, 1, rampa)
+    y[-rampa:] *= np.linspace(1, 0, rampa)
+    return y
+
+
+def subida(dur=0.7, f0=300, f1=1400):
+    """Tono que sube (algo que se llena)."""
+    t = tt(dur)
+    f = f0 * (f1 / f0) ** (t / dur) * (1 + 0.01 * np.sin(2 * np.pi * 9 * t))
+    y = np.sin(2 * np.pi * np.cumsum(f) / SR) + 0.3 * np.sin(4 * np.pi * np.cumsum(f) / SR)
+    return y * env_adsr(len(t), 0.02, 0.12) * 0.6
+
+
 def brillo_sfx():
     y = np.zeros(int(1.2 * SR))
     for i, m in enumerate((84, 88, 91, 96)):

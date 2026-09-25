@@ -6,6 +6,7 @@ Serie de videos animados de **30 segundos**, verticales (1080×1920, 30 fps), li
 |---|---|---|---|---|
 | 1 | 🐙 pulpo · 🍯 miel · 🪐 Venus | Tomás (hombre, Argentina) | [`ep01_pulpo_miel_venus.mp4`](output/ep01_pulpo_miel_venus.mp4) · [portada](output/ep01_portada.png) | [guion](guiones/ep01_pulpo_miel_venus.md) |
 | 2 | 🦈 tiburón · 🦩 flamenco · 🍌 banana | Elena (mujer, Argentina) | [`ep02_tiburon_flamenco_banana.mp4`](output/ep02_tiburon_flamenco_banana.mp4) · [portada](output/ep02_portada.png) | [guion](guiones/ep02_tiburon_flamenco_banana.md) |
+| 3 | 🦦 nutrias · ⚡ rayo · 🌳 árboles | Elena (mujer, Argentina) | [`ep03_nutrias_rayo_arboles.mp4`](output/ep03_nutrias_rayo_arboles.mp4) · [portada](output/ep03_portada.png) | [guion](guiones/ep03_nutrias_rayo_arboles.md) |
 
 Cada guion trae la tabla de escenas, los datos verificados y un texto listo para publicar.
 
@@ -41,10 +42,10 @@ cd src && python animacion.py ep02 --previa 2.5 5 12.3   # -> build/ep02/previa/
 
 ### Hacer un episodio nuevo
 
-1. Copiá `src/episodios/ep02.py` como `ep03.py`.
+1. Copiá el último episodio (por ejemplo `src/episodios/ep03.py`) como `ep04.py`.
 2. Cambiá `SLUG`, `VOZ` y los textos de `BLOQUES` (el primero es el gancho y el último el cierre; tienen que seguir diciendo "tres", "curiosidades" y "cabeza" en el gancho).
 3. Anclá tus animaciones a palabras en `eventos()`, sumá efectos en `efectos()` y dibujá las escenas.
-4. `python hacer_video.py ep03`. La velocidad de la voz se ajusta sola para que entre en 30 s; si no entra, avisa que hay que acortar el texto.
+4. `python hacer_video.py ep04`. La velocidad de la voz se ajusta sola para que entre en 30 s; si no entra, avisa que hay que acortar el texto.
 
 Voces en español argentino: `es-AR-ElenaNeural` (mujer) y `es-AR-TomasNeural` (hombre). Hay más en `edge-tts --list-voices`.
 
