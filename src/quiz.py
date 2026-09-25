@@ -189,6 +189,14 @@ def escena_pregunta(bid, numero, total, fondo, dibujo, acento, E, ESC, BLOQUES, 
     return escena
 
 
+def signo(fr, t, t_ini, t_fin, x, y, tam=120):
+    """Signo de pregunta que flota mientras se pregunta."""
+    s = pop(t, t_ini, 0.3) * (1 - pop(t, t_fin, 0.2))
+    if s > 0.01:
+        componer(fr, texto("?", "titulo", tam, color=(255, 255, 255), borde=9), x, y + 8 * math.sin(t * 3),
+                 escala=s, rot=6 * math.sin(t * 2))
+
+
 # ================================================================== gancho
 def cronometro(c, x, y, r, t, aguja, color=(255, 214, 10)):
     """Cronómetro de juego (sin números): corona, aro y una aguja."""

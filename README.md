@@ -15,6 +15,7 @@ Serie de videos animados de **30 segundos** (los quiz, 38 y 58), verticales (108
 | 9 | 🧠 tu cuerpo: más alto a la mañana · huesos · brillás en la oscuridad | **Voz humana** (grabada con el celular) | [`ep09_cuerpo_humano.mp4`](output/ep09_cuerpo_humano.mp4) · [portada](output/ep09_portada.png) | [guion y guía para grabar](guiones/ep09_cuerpo_humano.md) |
 | 10 | ❓ quiz interactivo: huellas del koala · luz del Sol · peso de una nube | **Voz humana** (grabada con el celular) | [`ep10_quiz.mp4`](output/ep10_quiz.mp4) · [portada](output/ep10_portada.png) | [guion](guiones/ep10_quiz.md) |
 | 11 | 🎬 quiz de películas (5 preguntas): Avengers · Forrest Gump · Toy Story · Ratatouille · Mi pobre angelito | **Voz humana** (grabada con el celular) | [`ep11_quiz_peliculas.mp4`](output/ep11_quiz_peliculas.mp4) · [portada](output/ep11_portada.png) | [guion](guiones/ep11_quiz_peliculas.md) |
+| 12 | 📺 quiz de series (5 preguntas): El juego del calamar · Stranger Things · La casa de papel · Casados con hijos · Merlina | **Voz humana** (grabada con el celular) | [`ep12_quiz_series.mp4`](output/ep12_quiz_series.mp4) · [portada](output/ep12_portada.png) | [guion](guiones/ep12_quiz_series.md) |
 
 Cada guion trae la tabla de escenas, los datos verificados y un texto listo para publicar.
 En los episodios de películas, series y dibujos se usan objetos y guiños genéricos: nunca se
@@ -95,7 +96,7 @@ Un episodio puede ser de preguntas (ver `src/episodios/ep10.py`). Cada bloque de
 ```
 
 `src/quiz.py` pone la tarjeta, las opciones A/B/C, el reloj 3-2-1 con tic-tac y la revelación de la correcta.
-El episodio solo dibuja lo del medio de cada pregunta. Puede tener 3 preguntas (`ep10`) o 5 (`ep11`):
+El episodio solo dibuja lo del medio de cada pregunta. Puede tener 3 preguntas (`ep10`) o 5 (`ep11`, `ep12`):
 el cierre acomoda una tarjeta por pregunta. Un episodio también puede traer su propio gancho
 (`ESCENAS["gancho"]`, como el cronómetro del quiz), el título del cierre (`CIERRE_TITULO`) y el cuadro de
 portada (`momento_portada`). La marca `[Ns]` funciona igual con la voz sintética y con una grabación.

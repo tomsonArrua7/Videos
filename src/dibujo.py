@@ -489,6 +489,12 @@ def tilde(c, x, y, tam, p=1.0, grosor=22, color=(40, 190, 90)):
     c.linea(pts, color, grosor)
 
 
+def rect_rot(cx, cy, w, h, ang):
+    ca, sa = math.cos(ang), math.sin(ang)
+    return [(cx + ca * dx - sa * dy, cy + sa * dx + ca * dy)
+            for dx, dy in ((-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2))]
+
+
 def elipse_rotada(cx, cy, rx, ry, grados, n=48):
     """Puntos de una elipse girada (para usar con Capa.poligono)."""
     a = math.radians(grados)

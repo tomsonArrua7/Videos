@@ -11,7 +11,8 @@ from PIL import Image
 
 import quiz
 from dibujo import (H, W, Capa, a_imagen, clamp, componer, corazon, e_back, e_in_out, gradiente, lerp, pop, prog,
-                    resplandor, spr_brillo, spr_estrella, spr_resplandor, texto, viñeta)
+                    rect_rot, resplandor, spr_brillo, spr_estrella, spr_resplandor, texto, viñeta)
+from quiz import signo
 
 SLUG = "quiz_peliculas"
 DURACION = 58.0                       # cinco preguntas con 3 s para pensar cada una
@@ -199,20 +200,6 @@ def preparar():
 
 
 # ================================================================ utilidades
-def rect_rot(cx, cy, w, h, ang):
-    ca, sa = math.cos(ang), math.sin(ang)
-    return [(cx + ca * dx - sa * dy, cy + sa * dx + ca * dy)
-            for dx, dy in ((-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2))]
-
-
-def signo(fr, t, t_ini, t_fin, x, y, tam=120):
-    """Signo de pregunta que flota mientras se pregunta."""
-    s = pop(t, t_ini, 0.3) * (1 - pop(t, t_fin, 0.2))
-    if s > 0.01:
-        componer(fr, texto("?", "titulo", tam, color=(255, 255, 255), borde=9), x, y + 8 * math.sin(t * 3),
-                 escala=s, rot=6 * math.sin(t * 2))
-
-
 def estallido(fr, x, y, s, palabra, color=(255, 220, 60)):
     c = Capa(int(x - 260), int(y - 200), 520, 400)
     pts = []
