@@ -359,7 +359,7 @@ def cartel(txt, sub=None, color=(255, 214, 10), fondo=(70, 30, 6), ancho=640, ta
     """Cartel oscuro con borde de color (contadores tipo '+3.000 AÑOS')."""
     tx = texto(txt, "titulo", tam, color=color)
     st = texto(sub, "negra", 40, color=(255, 255, 255)) if sub else None
-    ancho = max(ancho, tx.width + 70)
+    ancho = max(ancho, tx.width + 70, (st.width + 60) if st else 0)
     alto_txt = tx.height + (st.height - 6 if st else 0)
     h = max(150, alto_txt + 34)
     c = Capa(0, 0, ancho + 12, h + 18, ss=3)

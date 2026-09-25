@@ -8,6 +8,7 @@ Salida: build/<episodio>/voz/seg_XX.mp3 y build/<episodio>/timeline.json
 """
 import asyncio
 import json
+import math
 import os
 import re
 import ssl
@@ -19,7 +20,8 @@ import edge_tts
 import edge_tts.communicate as _edge_comm
 import imageio_ffmpeg
 
-from episodio import BUILD, EP, NOMBRE
+import grabacion
+from episodio import BUILD, EP, NOMBRE, RAIZ, argumentos
 from tiempos import _norm
 
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
@@ -131,22 +133,51 @@ async def generar(rate):
     return bloques
 
 
-def main():
-    print(f"Episodio {NOMBRE} · voz {EP.VOZ}")
-    # Probamos velocidades hasta que la narración entre en el tiempo pedido.
-    for pct in range(getattr(EP, "VOZ_VELOCIDAD_MIN", 0), 21, 2):
-        rate = f"+{pct}%"
-        bloques = asyncio.run(generar(rate))
-        total = (INICIO + sum(b["habla"] + b.get("pausa_despues", 0) for b in bloques)
-                 + PAUSA * (len(bloques) - 1))
-        print(f"velocidad {rate}: narración {total:.2f}s")
-        if total <= EP.DURACION - FINAL_MIN:
-            break
-    else:
-        sys.exit("El guion es demasiado largo para la duración pedida: acortá el texto.")
+def grabacion_propia():
+    """Ruta de la grabación humana del episodio (o None): `--grabacion archivo` o EP.GRABACION."""
+    args = argumentos()
+    if "--grabacion" in args:
+        return args[args.index("--grabacion") + 1]
+    patron = getattr(EP, "GRABACION", None)
+    return grabacion.buscar(RAIZ, patron) if patron else None
 
+
+def con_voz_humana(ruta):
+    fijo = (INICIO + PAUSA * (len(EP.BLOQUES) - 1) + sum(b.get("pausa_despues", 0) for b in EP.BLOQUES))
+    presupuesto = EP.DURACION - FINAL_MIN - fijo
+    bloques, informe = grabacion.procesar(ruta, EP.BLOQUES, os.path.join(BUILD, "voz"), presupuesto, separar)
+    print("\n".join(informe))
+    with open(os.path.join(BUILD, "grabacion_informe.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(informe) + "\n")
+    total = INICIO + sum(b["habla"] + b.get("pausa_despues", 0) for b in bloques) + PAUSA * (len(bloques) - 1)
+    return bloques, total, "grabación"
+
+
+def main():
+    ruta = grabacion_propia()
+    if ruta:
+        print(f"Episodio {NOMBRE} · voz humana ({ruta})")
+        bloques, total, rate = con_voz_humana(ruta)
+    else:
+        print(f"Episodio {NOMBRE} · voz {EP.VOZ}")
+        # Probamos velocidades hasta que la narración entre en el tiempo pedido.
+        for pct in range(getattr(EP, "VOZ_VELOCIDAD_MIN", 0), 21, 2):
+            rate = f"+{pct}%"
+            bloques = asyncio.run(generar(rate))
+            total = (INICIO + sum(b["habla"] + b.get("pausa_despues", 0) for b in bloques)
+                     + PAUSA * (len(bloques) - 1))
+            print(f"velocidad {rate}: narración {total:.2f}s")
+            if total <= EP.DURACION - FINAL_MIN:
+                break
+        else:
+            sys.exit("El guion es demasiado largo para la duración pedida: acortá el texto.")
+
+    # Con voz humana, si aun acelerando no entra, el video se estira unas décimas (mejor que cortar la voz).
+    duracion = max(EP.DURACION, math.ceil((total + FINAL_MIN) * 10 - 1e-6) / 10)
+    if duracion > EP.DURACION:
+        print(f"AVISO: la narración no entra en {EP.DURACION:.0f} s; el video dura {duracion:.1f} s.")
     # Repartimos el sobrante como pausas extra entre bloques (sin pasarnos).
-    sobra = EP.DURACION - FINAL_MIN - total
+    sobra = max(0.0, duracion - FINAL_MIN - total)
     extra = min(sobra / max(1, len(bloques) - 1), 0.35)
 
     t = INICIO
@@ -157,10 +188,11 @@ def main():
     for i, b in enumerate(bloques):
         b["escena_ini"] = 0.0 if i == 0 else round(b["inicio"] - 0.25, 3)
     for i, b in enumerate(bloques):
-        b["escena_fin"] = bloques[i + 1]["escena_ini"] if i + 1 < len(bloques) else EP.DURACION
+        b["escena_fin"] = bloques[i + 1]["escena_ini"] if i + 1 < len(bloques) else duracion
 
     with open(os.path.join(BUILD, "timeline.json"), "w", encoding="utf-8") as f:
-        json.dump({"duracion": EP.DURACION, "voz": EP.VOZ, "velocidad": rate, "bloques": bloques},
+        json.dump({"duracion": duracion, "voz": "humana" if ruta else EP.VOZ, "velocidad": rate,
+                   "bloques": bloques},
                   f, ensure_ascii=False, indent=2)
     for b in bloques:
         print(f"  {b['id']:<9} escena {b['escena_ini']:5.2f}-{b['escena_fin']:5.2f}s  "

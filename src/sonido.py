@@ -431,6 +431,28 @@ def viento(dur):
     return y * 0.6
 
 
+def pajaritos(dur=1.2):
+    """Trinos cortos de pájaros (mañana)."""
+    y = np.zeros(int(dur * SR))
+    for _ in range(int(dur * 5)):
+        tc = tt(rng.uniform(0.06, 0.12))
+        f0 = rng.uniform(2800, 4200)
+        trino = np.sin(2 * np.pi * np.cumsum(f0 + 900 * np.sin(2 * np.pi * 28 * tc)) / SR) * np.sin(np.pi * tc / tc[-1])
+        pegar(y, trino, rng.uniform(0, dur - 0.13), rng.uniform(0.3, 0.7))
+    return y
+
+
+def grillos(dur=1.5):
+    """Grillos (noche)."""
+    t = tt(dur)
+    pulsos = (np.sin(2 * np.pi * 30 * t) > 0.3) * (np.sin(2 * np.pi * 1.5 * t) > -0.2)
+    y = np.sin(2 * np.pi * 4600 * t) * pulsos * 0.5
+    rampa = int(0.2 * SR)
+    y[:rampa] *= np.linspace(0, 1, rampa)
+    y[-rampa:] *= np.linspace(1, 0, rampa)
+    return y
+
+
 def brillo_sfx():
     y = np.zeros(int(1.2 * SR))
     for i, m in enumerate((84, 88, 91, 96)):

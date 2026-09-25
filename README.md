@@ -12,6 +12,7 @@ Serie de videos animados de **30 segundos**, verticales (1080×1920, 30 fps), li
 | 6 | 🎨 dibujos animados: Los Simpson · Bob Esponja · Mickey Mouse | Tomás (hombre, Argentina) | [`ep06_dibujos_animados.mp4`](output/ep06_dibujos_animados.mp4) · [portada](output/ep06_portada.png) | [guion](guiones/ep06_dibujos_animados.md) |
 | 7 | 🎬 películas 2: Star Wars · Buscando a Nemo · Harry Potter | Tomás (hombre, Argentina) | [`ep07_peliculas_2.mp4`](output/ep07_peliculas_2.mp4) · [portada](output/ep07_portada.png) | [guion](guiones/ep07_peliculas_2.md) |
 | 8 | 🎬 películas 3: Psicosis · El Mago de Oz · Frozen | Tomás (hombre, Argentina) | [`ep08_peliculas_3.mp4`](output/ep08_peliculas_3.mp4) · [portada](output/ep08_portada.png) | [guion](guiones/ep08_peliculas_3.md) |
+| 9 | 🧠 tu cuerpo: más alto a la mañana · huesos · brillás en la oscuridad | **Tu voz** (por ahora, muestra con Tomás) | [`ep09_cuerpo_humano.mp4`](output/ep09_cuerpo_humano.mp4) · [portada](output/ep09_portada.png) | [guion y guía para grabar](guiones/ep09_cuerpo_humano.md) |
 
 Cada guion trae la tabla de escenas, los datos verificados y un texto listo para publicar.
 En los episodios de películas, series y dibujos se usan objetos y guiños genéricos: nunca se
@@ -30,6 +31,7 @@ Todo se genera con código, sin editor de video:
 | Kit de dibujo | Lienzo con antialias, textos, fondos, carteles, sprites | `src/dibujo.py` |
 | Sincronía | Momentos clave anclados a palabras de la voz | `src/tiempos.py` |
 | Control de la voz | Whisper escucha la narración y marca lo que no se entiende | `src/verificar_voz.py` |
+| Voz humana | Limpia una grabación de celular, ubica cada bloque del guion con Whisper y la sincroniza con el video | `src/grabacion.py` |
 
 ## Generar los videos
 
@@ -50,10 +52,10 @@ cd src && python animacion.py ep02 --previa 2.5 5 12.3   # -> build/ep02/previa/
 
 ### Hacer un episodio nuevo
 
-1. Copiá el último episodio (por ejemplo `src/episodios/ep08.py`) como `ep09.py`.
+1. Copiá el último episodio (por ejemplo `src/episodios/ep09.py`) como `ep10.py`.
 2. Cambiá `SLUG`, `VOZ` y los textos de `BLOQUES` (el primero es el gancho y el último el cierre; tienen que seguir diciendo "tres", "curiosidades" y "cabeza" en el gancho).
 3. Anclá tus animaciones a palabras en `eventos()`, sumá efectos en `efectos()` y dibujá las escenas.
-4. `python hacer_video.py ep09`. La velocidad de la voz se ajusta sola para que entre en 30 s; si no entra, avisa que hay que acortar el texto.
+4. `python hacer_video.py ep10`. La velocidad de la voz se ajusta sola para que entre en 30 s; si no entra, avisa que hay que acortar el texto.
 
 Voces en español argentino: `es-AR-ElenaNeural` (mujer) y `es-AR-TomasNeural` (hombre). Hay más en `edge-tts --list-voices`.
 
@@ -79,8 +81,31 @@ python verificar_voz.py ep05                                   # transcribe y ma
 python verificar_voz.py ep05 --probar "La serie Frends." "La serie Fréns."   # compara variantes
 ```
 
+## Grabar con tu voz
+
+Cualquier episodio puede usar una voz humana en lugar de la sintética:
+
+1. Grabá los bloques del guion en **un solo audio** con el celular, con un silencio corto entre bloque
+   y bloque. Si te trabás, repetí el bloque entero: se usa la última toma completa.
+2. Guardalo como `grabaciones/ep09.m4a` (sirve cualquier formato de audio; ver [`grabaciones/LEEME.md`](grabaciones/LEEME.md)).
+3. `python hacer_video.py ep09`: detecta la grabación y la usa.
+
+El retoque (`src/grabacion.py`, necesita `pip install -r requirements-verificacion.txt`) hace esto:
+
+- **Ruido:** saca el zumbido grave y el ruido de fondo con una compuerta espectral que aprende de los silencios.
+- **Sincronía:** Whisper transcribe con tiempos por palabra, ubica cada bloque (también las repeticiones)
+  y ancla las animaciones y los subtítulos a tus palabras.
+- **Edición:** corta los bloques, baja las respiraciones y empareja el volumen.
+- **Tiempo:** si no entra en 30 s, acelera hasta un 15 % sin cambiar el tono. Si aun así no entra,
+  el video se estira unas décimas.
+- **Sonido:** después pasa por la misma cadena de locución y mezcla que la voz sintética.
+
+El informe queda en `build/ep09/grabacion_informe.txt`. Para probar otro archivo:
+`cd src && python voz.py ep09 --grabacion ../mi_audio.m4a`. Para que un episodio nuevo busque su grabación,
+se le agrega `GRABACION = "grabaciones/epNN"`.
+
 ## Licencias y créditos
 
 - **Música y efectos:** originales, generados por este código. Sin derechos de terceros.
 - **Tipografías:** [Luckiest Guy](https://fonts.google.com/specimen/Luckiest+Guy) (Apache 2.0) y [Montserrat](https://github.com/JulietaUla/Montserrat) (SIL OFL). Licencias en `assets/fonts/`.
-- **Voz:** servicio de lectura en voz alta de Microsoft Edge, usado a través de `edge-tts`. Si el canal se va a monetizar, conviene revisar los términos de Microsoft o reemplazar la voz por una con licencia comercial explícita.
+- **Voz:** en los episodios con voz sintética, servicio de lectura en voz alta de Microsoft Edge, usado a través de `edge-tts`. Si el canal se va a monetizar, conviene revisar los términos de Microsoft o reemplazar la voz por una con licencia comercial explícita.
