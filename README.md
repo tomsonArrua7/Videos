@@ -17,6 +17,7 @@ Serie de videos animados de **30 segundos** (los quiz, 38 y 58), verticales (108
 | 11 | 🎬 quiz de películas (5 preguntas): Avengers · Forrest Gump · Toy Story · Ratatouille · Mi pobre angelito | **Voz humana** (grabada con el celular) | [`ep11_quiz_peliculas.mp4`](output/ep11_quiz_peliculas.mp4) · [portada](output/ep11_portada.png) | [guion](guiones/ep11_quiz_peliculas.md) |
 | 12 | 📺 quiz de series (5 preguntas): El juego del calamar · Stranger Things · La casa de papel · Casados con hijos · Merlina | **Voz humana** (grabada con el celular) | [`ep12_quiz_series.mp4`](output/ep12_quiz_series.mp4) · [portada](output/ep12_portada.png) | [guion](guiones/ep12_quiz_series.md) |
 | 13 | 🎬 películas 4: Matrix · Tiburón · El Señor de los Anillos | Tomás (hombre, Argentina) | [`ep13_peliculas_4.mp4`](output/ep13_peliculas_4.mp4) · [portada](output/ep13_portada.png) | [guion](guiones/ep13_peliculas_4.md) |
+| 14 | 🎬 películas 5: El Padrino · Monsters Inc. · Rocky | Tomás (hombre, Argentina) | [`ep14_peliculas_5.mp4`](output/ep14_peliculas_5.mp4) · [portada](output/ep14_portada.png) | [guion](guiones/ep14_peliculas_5.md) |
 
 Cada guion trae la tabla de escenas, los datos verificados y un texto listo para publicar.
 En los episodios de películas, series y dibujos se usan objetos y guiños genéricos: nunca se
