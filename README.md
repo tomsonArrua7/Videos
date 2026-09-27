@@ -18,6 +18,7 @@ Serie de videos animados de **30 segundos** (los quiz, 38 y 58), verticales (108
 | 12 | 📺 quiz de series (5 preguntas): El juego del calamar · Stranger Things · La casa de papel · Casados con hijos · Merlina | **Voz humana** (grabada con el celular) | [`ep12_quiz_series.mp4`](output/ep12_quiz_series.mp4) · [portada](output/ep12_portada.png) | [guion](guiones/ep12_quiz_series.md) |
 | 13 | 🎬 películas 4: Matrix · Tiburón · El Señor de los Anillos | Tomás (hombre, Argentina) | [`ep13_peliculas_4.mp4`](output/ep13_peliculas_4.mp4) · [portada](output/ep13_portada.png) | [guion](guiones/ep13_peliculas_4.md) |
 | 14 | 🎬 películas 5: El Padrino · Monsters Inc. · Rocky | Tomás (hombre, Argentina) | [`ep14_peliculas_5.mp4`](output/ep14_peliculas_5.mp4) · [portada](output/ep14_portada.png) | [guion](guiones/ep14_peliculas_5.md) |
+| 15 | ❓ quiz de cultura general (5 preguntas): murciélago · fémur · tiburón · Saturno · Suecia | Tomás (hombre, Argentina) | [`ep15_quiz_cultura.mp4`](output/ep15_quiz_cultura.mp4) · [portada](output/ep15_portada.png) | [guion](guiones/ep15_quiz_cultura.md) |
 
 Cada guion trae la tabla de escenas, los datos verificados y un texto listo para publicar.
 En los episodios de películas, series y dibujos se usan objetos y guiños genéricos: nunca se
@@ -109,7 +110,7 @@ Un episodio puede ser de preguntas (ver `src/episodios/ep10.py`). Cada bloque de
 ```
 
 `src/quiz.py` pone la tarjeta, las opciones A/B/C, el reloj 3-2-1 con tic-tac y la revelación de la correcta.
-El episodio solo dibuja lo del medio de cada pregunta. Puede tener 3 preguntas (`ep10`) o 5 (`ep11`, `ep12`):
+El episodio solo dibuja lo del medio de cada pregunta. Puede tener 3 preguntas (`ep10`) o 5 (`ep11`, `ep12`, `ep15`):
 el cierre acomoda una tarjeta por pregunta. Un episodio también puede traer su propio gancho
 (`ESCENAS["gancho"]`, como el cronómetro del quiz), el título del cierre (`CIERRE_TITULO`) y el cuadro de
 portada (`momento_portada`). La marca `[Ns]` funciona igual con la voz sintética y con una grabación.
