@@ -16,6 +16,7 @@ Serie de videos animados de **30 segundos** (los quiz, 38 y 58), verticales (108
 | 10 | ❓ quiz interactivo: huellas del koala · luz del Sol · peso de una nube | **Voz humana** (grabada con el celular) | [`ep10_quiz.mp4`](output/ep10_quiz.mp4) · [portada](output/ep10_portada.png) | [guion](guiones/ep10_quiz.md) |
 | 11 | 🎬 quiz de películas (5 preguntas): Avengers · Forrest Gump · Toy Story · Ratatouille · Mi pobre angelito | **Voz humana** (grabada con el celular) | [`ep11_quiz_peliculas.mp4`](output/ep11_quiz_peliculas.mp4) · [portada](output/ep11_portada.png) | [guion](guiones/ep11_quiz_peliculas.md) |
 | 12 | 📺 quiz de series (5 preguntas): El juego del calamar · Stranger Things · La casa de papel · Casados con hijos · Merlina | **Voz humana** (grabada con el celular) | [`ep12_quiz_series.mp4`](output/ep12_quiz_series.mp4) · [portada](output/ep12_portada.png) | [guion](guiones/ep12_quiz_series.md) |
+| 13 | 🎬 películas 4: Matrix · Tiburón · El Señor de los Anillos | Tomás (hombre, Argentina) | [`ep13_peliculas_4.mp4`](output/ep13_peliculas_4.mp4) · [portada](output/ep13_portada.png) | [guion](guiones/ep13_peliculas_4.md) |
 
 Cada guion trae la tabla de escenas, los datos verificados y un texto listo para publicar.
 En los episodios de películas, series y dibujos se usan objetos y guiños genéricos: nunca se
