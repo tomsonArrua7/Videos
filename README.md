@@ -19,6 +19,7 @@ Serie de videos animados de **30 segundos** (los quiz, 38 y 58), verticales (108
 | 13 | 🎬 películas 4: Matrix · Tiburón · El Señor de los Anillos | Tomás (hombre, Argentina) | [`ep13_peliculas_4.mp4`](output/ep13_peliculas_4.mp4) · [portada](output/ep13_portada.png) | [guion](guiones/ep13_peliculas_4.md) |
 | 14 | 🎬 películas 5: El Padrino · Monsters Inc. · Rocky | Tomás (hombre, Argentina) | [`ep14_peliculas_5.mp4`](output/ep14_peliculas_5.mp4) · [portada](output/ep14_portada.png) | [guion](guiones/ep14_peliculas_5.md) |
 | 15 | ❓ quiz de cultura general (5 preguntas): murciélago · fémur · tiburón · Saturno · Suecia | Tomás (hombre, Argentina) | [`ep15_quiz_cultura.mp4`](output/ep15_quiz_cultura.mp4) · [portada](output/ep15_portada.png) | [guion](guiones/ep15_quiz_cultura.md) |
+| 16 | ⚽ quiz de fútbol argentino (5 preguntas): Newell's · Racing · Independiente · River · Vélez | Tomás (hombre, Argentina) | [`ep16_quiz_futbol.mp4`](output/ep16_quiz_futbol.mp4) · [portada](output/ep16_portada.png) | [guion](guiones/ep16_quiz_futbol.md) |
 
 Cada guion trae la tabla de escenas, los datos verificados y un texto listo para publicar.
 En los episodios de películas, series y dibujos se usan objetos y guiños genéricos: nunca se
